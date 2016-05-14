@@ -150,7 +150,7 @@ GRABIM_Result GRABIM::RunGRABIM()
         Res.S22_nlopt.at(i) = S_nlopt(1,1);
     }
 
-    Res.topology = QString(topology.c_str());//Save network topology to create a Qucs schematic
+    Res.topology = topology.c_str();//Save network topology to create a Qucs schematic
 
     return Res;
 }
@@ -280,7 +280,7 @@ int GRABIM::SearchPredefinedTopologies(rowvec & Vopt, std::string & candidate)
 
     cout << "Predefined networks..." << endl;
 
-    QStringList strlist;
+    vector<string> strlist;
     std:string aux;
     while (std::getline(TopologiesFile, aux))
     {
@@ -293,13 +293,16 @@ int GRABIM::SearchPredefinedTopologies(rowvec & Vopt, std::string & candidate)
         topology = aux;
         std::getline(TopologiesFile, line);
 
-        if (!QString(line.c_str()).isEmpty())
+        if (!line.empty())
         {//Check whether the initial pivot is given in the script or not
-            strlist =  QString(line.c_str()).split(";");
-            x_ini.resize(1, strlist.count());
-            for (int i = 0; i < strlist.count(); i++)
+            istringstream f(line);
+            std::string s;
+            while (getline(f, s, ';'))  strlist.push_back(s);
+
+            x_ini.resize(1, (int) strlist.size());
+            for (int i = 0; i < strlist.size(); i++)
             {
-                x_ini.at(i) = strlist.at(i).toDouble();
+                x_ini.at(i) = atof(strlist.at(i).c_str());
             }
         }
         else

@@ -1,10 +1,7 @@
 #ifndef IO_H
 #define IO_H
 #include "GRABIM.h"
-#include <qstring.h>
-
-#include <QApplication>//Qucs export
-#include <QClipboard>
+#include <locale>
 
 using namespace std;
 
@@ -48,10 +45,14 @@ private:
     double getS2PfreqScale(string line);
     nlopt::algorithm LocalOptAlgo;
 
-    int SchematicParser(GRABIM_Result, int &, QString &, QString &, QString &);
-    bool CreateSchematic(QString, QString, QString, QString);
+    int SchematicParser(GRABIM_Result, int &, string &, string &, string &);
+    bool CreateSchematic(string, string, string, string);
 
     int Nsamples;//Impedance samples within matching band
+
+
+    string Num2String(int x);
+    string Num2String(double x);
 };
 
 #endif // IO_H

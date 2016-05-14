@@ -2,24 +2,24 @@
 
 SparEngine::SparEngine()
 {
-    preTopoList += "444";
-    preTopoList += "020313";
-    preTopoList += "313020";
-    preTopoList += "03030";
-    preTopoList += "313202";
-    preTopoList += "202313";
-    preTopoList += "03030";
-    preTopoList += "43434";
-    preTopoList += "01230123";
-    preTopoList += "23012301";
-    preTopoList += "12031203";
-    preTopoList += "21302130";
-    preTopoList += "03120312";
-    preTopoList += "30213021";
-    preTopoList += "30303030";
-    preTopoList += "03030303";
-    preTopoList += "12121212";
-    preTopoList += "21212121";
+    preTopoList.insert("444");
+    preTopoList.insert("020313");
+    preTopoList.insert("313020");
+    preTopoList.insert("03030");
+    preTopoList.insert("313202");
+    preTopoList.insert("202313");
+    preTopoList.insert("03030");
+    preTopoList.insert("43434");
+    preTopoList.insert("01230123");
+    preTopoList.insert("23012301");
+    preTopoList.insert("12031203");
+    preTopoList.insert("21302130");
+    preTopoList.insert("03120312");
+    preTopoList.insert("30213021");
+    preTopoList.insert("30303030");
+    preTopoList.insert("03030303");
+    preTopoList.insert("12121212");
+    preTopoList.insert("21212121");
 }
 
 
@@ -54,7 +54,7 @@ cx_mat SparEngine::getABCDmatrix(rowvec x, double f, std::string topology)
 
      ABCD = PreComputedABCD(x, w, topology);
      //cout << ABCD << endl << endl;
-     if (preTopoList.contains(QString(topology.c_str())))
+     if (preTopoList.find(topology) != preTopoList.end())
      {
          return ABCD;
      }

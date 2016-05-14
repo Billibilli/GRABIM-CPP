@@ -421,9 +421,9 @@ double IO::getS2PfreqScale(string line)
 // This function exports the best topology found to a Qucs schematic
 int IO::ExportQucsSchematic(GRABIM_Result R)
 {
-    QString wirestr = "";
-    QString componentstr = "";
-    QString paintingstr = "";
+    std::string wirestr = "";
+    std::string componentstr = "";
+    std::string paintingstr = "";
     int x_pos = 0;
     SchematicParser(R, x_pos, componentstr, wirestr, paintingstr);
     CreateSchematic(componentstr, wirestr, paintingstr, R.QucsVersion);
@@ -434,9 +434,9 @@ int IO::ExportQucsSchematic(GRABIM_Result R)
 
 // Given a string code of inductors, capacitors and transmission lines, it generates the Qucs network. Notice that the schematic is split into
 // three part: components, wires and paintings, all of them are passed by reference.
-int IO::SchematicParser(GRABIM_Result R, int & x_pos, QString & componentstr, QString & wirestr, QString & paintingstr)
+int IO::SchematicParser(GRABIM_Result R, int & x_pos, string & componentstr, string & wirestr, string & paintingstr)
 {
-    QString component;
+    string component;
     int x_series = 120, x_shunt = 20;//x-axis spacing depending on whether the component is placed in a series or shunt configuration
     //Clear input strings (just in case)
     componentstr = "";
@@ -450,21 +450,21 @@ int IO::SchematicParser(GRABIM_Result R, int & x_pos, QString & componentstr, QS
     // 3: Port 1, Port 2 and S parameter simulation
 
 
-    if ((R.source_path.isEmpty()) && (abs(ZS.at(0).imag()) < 1e-3) && (ZS.at(0).real() > 1e-3))
+    if ((R.source_path.empty()) && (abs(ZS.at(0).imag()) < 1e-3) && (ZS.at(0).real() > 1e-3))
     {//Conventional term
-        componentstr += QString("<Pac P1 1 %2 -30 18 -26 0 1 \"1\" 1 \"%1 Ohm\" 1 \"0 dBm\" 0 \"1 GHz\" 0>\n").arg(ZS.at(0).real()).arg(x_pos);
-        componentstr += QString("<GND * 1 %1 0 0 0 0 0>\n").arg(x_pos);
+        componentstr += "<Pac P1 1 " + Num2String(x_pos) + " -30 18 -26 0 1 \"1\" 1 \"" + Num2String(ZS.at(0).real()) + " Ohm\" 1 \"0 dBm\" 0 \"1 GHz\" 0>\n";
+        componentstr += "<GND * 1 " + Num2String(x_pos) + " 0 0 0 0 0>\n";
 
-        wirestr += QString("<%1 -60 %1 -120>\n").arg(x_pos);
-        wirestr += QString("<%1 -120 %2 -120>\n").arg(x_pos).arg(x_pos+60);
+        wirestr += "<" + Num2String(x_pos) + " -60 " + Num2String(x_pos) + " -120>\n";
+        wirestr += "<" + Num2String(x_pos) +" -120 "+ Num2String(x_pos+60) +" -120>\n";
         x_pos +=60;
     }
     else
     {//Place a S-param file
-        componentstr += QString("<SPfile X1 1 %1 -120 -26 -67 1 2 \"%2\" 1 \"rectangular\" 0 \"linear\" 0 \"open\" 0 \"1\" 0>\n").arg(x_pos).arg(R.source_path);
-        componentstr += QString("<GND * 1 %1 -90 0 0 0 0>\n").arg(x_pos);
+        componentstr += "<SPfile X1 1 " + Num2String(x_pos) + " -120 -26 -67 1 2 \"" + R.source_path + "\" 1 \"rectangular\" 0 \"linear\" 0 \"open\" 0 \"1\" 0>\n";
+        componentstr += "<GND * 1 " + Num2String(x_pos) +" -90 0 0 0 0>\n";
         x_pos = 30;
-        wirestr += QString("<%1 -120 %2 -120>\n").arg(x_pos).arg(x_pos+60);
+        wirestr += "<" + Num2String(x_pos) + " -120 " + Num2String(x_pos+60) + " -120>\n";
         x_pos +=60;
     }
 
@@ -480,66 +480,66 @@ int IO::SchematicParser(GRABIM_Result R, int & x_pos, QString & componentstr, QS
     //    6: Short circuited stub
 
     int value_index = 0;
-    for (int i = 0; i < R.topology.count(); i++)
+    for (int i = 0; i < R.topology.length(); i++)
     {
         component = R.topology.at(i);
 
         if (!component.compare("0"))//Series inductor
         {
-            componentstr += QString("<L L1 1 %1 -120 -26 10 0 0 \"%2\" 1 "" 0>\n").arg(x_pos+60).arg(R.x_nlopt.at(value_index));
-            wirestr += QString("<%1 -120 %2 -120 "" 0 0 0 "">\n").arg(x_pos).arg(x_pos+30);
-            wirestr += QString("<%1 -120 %2 -120 "" 0 0 0 "">\n").arg(x_pos+90).arg(x_pos+x_series);
+            componentstr += "<L L1 1 " + Num2String(x_pos+60) + " -120 -26 10 0 0 \"" + Num2String(R.x_nlopt.at(value_index)) + "\" 1 "" 0>\n";
+            wirestr +=  "<" + Num2String(x_pos) + " -120 " +  Num2String(x_pos+30) + " -120 \"\" 0 0 0 \"\">\n";
+            wirestr += "<" + Num2String(x_pos+90) + " -120 " + Num2String(x_pos+x_series) + " -120 "" 0 0 0 "">\n";
             x_pos += x_series;
             value_index++;
         }
         else if (!component.compare("1"))//Series capacitor
         {
-            componentstr += QString("<C C1 1 %1 -120 -26 17 0 0 \"%2\" 1 "" 0>\n").arg(x_pos+60).arg(R.x_nlopt.at(value_index));
-            wirestr += QString("<%1 -120 %2 -120 "" 0 0 0 "">\n").arg(x_pos).arg(x_pos+30);
-            wirestr += QString("<%1 -120 %2 -120 "" 0 0 0 "">\n").arg(x_pos+90).arg(x_pos+x_series);
+            componentstr += "<C C1 1 " + Num2String(x_pos+60) + " -120 -26 17 0 0 \"" + Num2String(R.x_nlopt.at(value_index)) + "\" 1 "" 0>\n";
+            wirestr += "<" + Num2String(x_pos) + " -120 " + Num2String(x_pos+30) + " -120 "" 0 0 0 "">\n";
+            wirestr += "<"+ Num2String(x_pos+90) +" -120 " + Num2String(x_pos+x_series) + " -120 \"\" 0 0 0 \"\">\n";
             x_pos += x_series;
             value_index++;
         }
         else if (!component.compare("2"))//Shunt inductor
         {
-            componentstr += QString("<GND * 1 %1 0 0 0 0 0>\n").arg(x_pos);
-            componentstr += QString("<L L1 1 %1 -30 -26 2 0 1 \"%2\" 1 "" 0>\n").arg(x_pos).arg(R.x_nlopt.at(value_index));
-            wirestr += QString("<%1 -60 %1 -120 "" 0 0 0 "">\n").arg(x_pos);
-            wirestr += QString("<%1 -120 %2 -120 "" 0 0 0 "">\n").arg(x_pos).arg(x_pos+x_shunt);
+            componentstr += "<GND * 1 " + Num2String(x_pos) + " 0 0 0 0 0>\n";
+            componentstr += "<L L1 1 " + Num2String(x_pos) + " -30 -26 2 0 1 \"" + Num2String(R.x_nlopt.at(value_index)) + "\" 1 "" 0>\n";
+            wirestr += "<" + Num2String(x_pos) + "-60 " + Num2String(x_pos) +" -120 \"\" 0 0 0 "">\n";
+            wirestr += "<" + Num2String(x_pos) + " -120 " + Num2String(x_pos+x_shunt) + " -120 \"\" 0 0 0 "">\n";
             x_pos += x_shunt;
             value_index++;
         }
         else if (!component.compare("3"))//Shunt capacitor
         {
-            componentstr += QString("<GND * 1 %1 0 0 0 0 0>\n").arg(x_pos);
-            componentstr += QString("<C C1 1 %1 -30 -26 17 0 1 \"%2\" 1 "" 0>\n").arg(x_pos).arg(R.x_nlopt.at(value_index));
-            wirestr += QString("<%1 -60 %1 -120 "" 0 0 0 "">\n").arg(x_pos);
-            wirestr += QString("<%1 -120 %2 -120 "" 0 0 0 "">\n").arg(x_pos).arg(x_pos+x_shunt);
+            componentstr += "<GND * 1 " + Num2String(x_pos) + " 0 0 0 0 0>\n";
+            componentstr += "<C C1 1 " + Num2String(x_pos) + " -30 -26 17 0 1 \"" + Num2String(R.x_nlopt.at(value_index)) + "\" 1 "" 0>\n";
+            wirestr += "<" + Num2String(x_pos) +" -60 " + Num2String(x_pos) + " -120 \"\" 0 0 0 "">\n";
+            wirestr += "<" + Num2String(x_pos) + " -120 " + Num2String(x_pos+x_shunt) + " -120 "" 0 0 0 "">\n";
             x_pos += x_shunt;
             value_index++;
         }
         else if (!component.compare("4"))//Transmission line
         {
-            componentstr += QString("<TLIN Line1 1 %3 -120 -26 20 0 0 \"%1\" 1 \"%2\" 1 \"0 dB\" 0 \"26.85\" 0>\n").arg(R.x_nlopt.at(value_index)).arg(R.x_nlopt.at(value_index+1)).arg(x_pos+60);
-            wirestr += QString("<%1 -120 %2 -120 "" 0 0 0 "">\n").arg(x_pos).arg(x_pos+30);
-            wirestr += QString("<%1 -120 %2 -120 "" 0 0 0 "">\n").arg(x_pos+90).arg(x_pos+x_series);
+            componentstr += "<TLIN Line1 1 " + Num2String(x_pos+60) + " -120 -26 20 0 0 \"" + Num2String(R.x_nlopt.at(value_index)) + "\" 1 \"" + Num2String(R.x_nlopt.at(value_index+1)) + "\" 1 \"0 dB\" 0 \"26.85\" 0>\n";
+            wirestr += "<" + Num2String(x_pos) + " -120 " + Num2String(x_pos+30) + " -120 "" 0 0 0 "">\n";
+            wirestr += "<" + Num2String(x_pos+90) + " -120 " + Num2String(x_pos+x_series) + " -120 \"\" 0 0 0 "">\n";
             x_pos += x_series;
             value_index+=2;
         }
         else if (!component.compare("5"))//Open stub
         {
-            componentstr += QString("<TLIN Line1 1 %3 -60 -26 20 0 1 \"%1\" 1 \"%2\" 1 \"0 dB\" 0 \"26.85\" 0>\n").arg(R.x_nlopt.at(value_index)).arg(R.x_nlopt.at(value_index+1)).arg(x_pos);
-            wirestr += QString("<%1 -90 %1 -120 "" 0 0 0 "">\n").arg(x_pos);
-            wirestr += QString("<%1 -120 %2 -120 "" 0 0 0 "">\n").arg(x_pos).arg(x_pos+x_shunt);
+            componentstr += "<TLIN Line1 1 " + Num2String(x_pos) + " -60 -26 20 0 1 \"" + Num2String(R.x_nlopt.at(value_index)) + "\" 1 \"" + Num2String(R.x_nlopt.at(value_index+1)) + "\" 1 \"0 dB\" 0 \"26.85\" 0>\n";
+            wirestr += "<" + Num2String(x_pos) + "-90 " + Num2String(x_pos) + " -120 \"\" 0 0 0 "">\n";
+            wirestr += "<" + Num2String(x_pos) + " -120 "+ Num2String(x_pos+x_shunt) + " -120 \"\" 0 0 0 "">\n";
             x_pos += x_shunt;
             value_index+=2;
         }
         else if (!component.compare("6"))//Short circuited stub
         {
-            componentstr += QString("<TLIN Line1 1 %3 -60 -26 20 0 1 \"%1\" 1 \"%2\" 1 \"0 dB\" 0 \"26.85\" 0>\n").arg(R.x_nlopt.at(value_index)).arg(R.x_nlopt.at(value_index+1)).arg(x_pos);
-            componentstr += QString("<GND * 1 %1 -30 0 0 0 0>\n").arg(x_pos);
-            wirestr += QString("<%1 -90 %1 -120 "" 0 0 0 "">\n").arg(x_pos);
-            wirestr += QString("<%1 -120 %2 -120 "" 0 0 0 "">\n").arg(x_pos).arg(x_pos+x_shunt);
+            componentstr += "<TLIN Line1 1 " + Num2String(x_pos) + " -60 -26 20 0 1 \"" + Num2String(R.x_nlopt.at(value_index)) + "\" 1 \""+Num2String(R.x_nlopt.at(value_index+1))+"\" 1 \"0 dB\" 0 \"26.85\" 0>\n";
+            componentstr += "<GND * 1 " + Num2String(x_pos) + " -30 0 0 0 0>\n";
+            wirestr += "<" + Num2String(x_pos) +" -90 " + Num2String(x_pos) + " -120 "" 0 0 0 "">\n";
+            wirestr += "<" + Num2String(x_pos) + "-120 " + Num2String(x_pos+x_shunt) + "-120 \"\" 0 0 0 "">\n";
             x_pos += x_shunt;
             value_index+=2;
         }
@@ -547,17 +547,17 @@ int IO::SchematicParser(GRABIM_Result R, int & x_pos, QString & componentstr, QS
     }
 
 
-    if ((R.load_path.isEmpty()) && (abs(ZL.at(0).imag()) < 1e-3) && (ZL.at(0).real() > 1e-3))
+    if ((R.load_path.empty()) && (abs(ZL.at(0).imag()) < 1e-3) && (ZL.at(0).real() > 1e-3))
     {//Conventional term
-        componentstr += QString("<Pac P1 1 %2 -30 18 -26 0 1 \"1\" 1 \"%1 Ohm\" 1 \"0 dBm\" 0 \"1 GHz\" 0>\n").arg(ZL.at(0).real()).arg(x_pos);
-        componentstr += QString("<GND * 1 %1 0 0 0 0 0>\n").arg(x_pos);
+        componentstr += "<Pac P1 1 " + Num2String(x_pos) + " -30 18 -26 0 1 \"1\" 1 \"" + Num2String(ZL.at(0).real()) + " Ohm\" 1 \"0 dBm\" 0 \"1 GHz\" 0>\n";
+        componentstr += "<GND * 1 "+Num2String(x_pos)+" 0 0 0 0 0>\n";
 
-        wirestr += QString("<%1 -60 %1 -120>\n").arg(x_pos);
+        wirestr += "<" + Num2String(x_pos) + " -60 " + Num2String(x_pos) + " -120>\n";
     }
     else
     {//Place a S-param file
-        componentstr += QString("<SPfile X1 1 %1 -120 -26 -67 0 0 \"%2\" 1 \"rectangular\" 0 \"linear\" 0 \"open\" 0 \"1\" 0>").arg(x_pos).arg(R.load_path);
-        componentstr += QString("<GND * 1 %1 -150 0 0 0 0>").arg(x_pos);
+        componentstr += "<SPfile X1 1 " + Num2String(x_pos) + " -120 -26 -67 0 0 \"" + R.load_path + "\" 1 \"rectangular\" 0 \"linear\" 0 \"open\" 0 \"1\" 0>";
+        componentstr += "<GND * 1 " + Num2String(x_pos) + " -150 0 0 0 0>";
     }
 
     return 0;
@@ -566,10 +566,10 @@ int IO::SchematicParser(GRABIM_Result R, int & x_pos, QString & componentstr, QS
 
 //-----------------------------------------------------------------------------
 // Given the components, wires and paintings, it creates the schematic and copies on the clipboard
-bool IO::CreateSchematic(QString components, QString wires, QString paintings, QString QucsVersion)
+bool IO::CreateSchematic(string components, string wires, string paintings, string QucsVersion)
 {
     //Header
-    QString Schematic = QString("<Qucs Schematic ") + QucsVersion + QString(">\n");
+    std::string Schematic = "<Qucs Schematic " + QucsVersion + ">\n";
 
     //Add components
     Schematic += "<Components>\n";
@@ -586,6 +586,31 @@ bool IO::CreateSchematic(QString components, QString wires, QString paintings, Q
     Schematic += paintings;
     Schematic += "</Paintings>\n";
 
-    QApplication::clipboard()->setText(Schematic, QClipboard::Clipboard);
+    //Save Qucs file
+    std::ofstream QucsFile("GRABIM_result.sch");
+
+       if(!QucsFile)
+       {
+           std::cerr<<"Cannot write the Qucs schematic" <<std::endl;
+           return false;
+       }
+       QucsFile<< Schematic;
+       QucsFile.close();
+
     return true;
+}
+
+string IO::Num2String(double x)
+{
+ std::ostringstream s;
+s << x;
+return s.str();
+}
+
+
+string IO::Num2String(int x)
+{
+    std::ostringstream s;
+    s << x;
+    return s.str();
 }

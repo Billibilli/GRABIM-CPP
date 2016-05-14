@@ -70,8 +70,6 @@ ui::ui()
       Impedancelayout->addLayout(LoadLayout);
 
 
-
-
        // Matching band
        QGroupBox *groupBox = new QGroupBox(tr("Matching band"));
        minFLabel = new QLabel("Min:");
@@ -163,6 +161,14 @@ ui::ui()
        QucsCombo->setEditable(true);
        QucsLayout->addWidget(QucsCombo);
 
+       QHBoxLayout * QucsSchPathLayout =  new QHBoxLayout();
+       QucsSchematicPathButton = new QPushButton("Browse");
+       QucsSchematicPathButton = new QPushButton("Browse");
+       QucsSchPathLayout->addWidget(new QLabel("Qucs schematic:"));
+       QucsSchPathLayout->addWidget(QucsSchematicPathButton);
+
+       QucsSchematicPath = "GRABIM_matching_network.sch";
+
 
        QHBoxLayout * TopoScriptLayout =  new QHBoxLayout();
        TopoScriptButton =  new QPushButton("Browse");
@@ -190,6 +196,7 @@ ui::ui()
       mainLayout->addLayout(LocalOptLayout);
       mainLayout->addWidget(groupBoxGNUplot);
       mainLayout->addLayout(QucsLayout);
+      mainLayout->addLayout(QucsSchPathLayout);
       mainLayout->addLayout(TopoScriptLayout);
       mainLayout->addLayout(ButtonsLayout);
 
@@ -394,10 +401,10 @@ void ui::go_clicked()
     // N is typically < 6. Even N=6 is a big number, please consider that matching networks are tight to physical constraints in practice, so, the larger the
     // network, the harder the 'tuning'.
 
-    (FixedZSCheckbox->isChecked()) ? R.source_path = "" : R.source_path = SourceFile;
-    (FixedZLCheckbox->isChecked()) ? R.load_path = "": R.load_path = LoadFile;
+    (FixedZSCheckbox->isChecked()) ? R.source_path = "" : R.source_path = SourceFile.toStdString();
+    (FixedZLCheckbox->isChecked()) ? R.load_path = "": R.load_path = LoadFile.toStdString();
 
-    R.QucsVersion = QucsCombo->currentText();
+    R.QucsVersion = QucsCombo->currentText().toStdString();
 
 
 
@@ -407,7 +414,7 @@ void ui::go_clicked()
     }
 
     QMessageBox::information(0, QObject::tr("Finished"),
-                         QObject::tr("GRABIM has successfully finished. \nPlease execute: 'gnuplot plotscript' to take a look to the results.\nThe network has been copied into the clipboard as a Qucs netlist"));
+                         QObject::tr("GRABIM has successfully finished. \nPlease execute: 'gnuplot plotscript' to take a look to the results.\nA new Qucs schematic has been generated"));
 
     inout_operations.exportGNUplot(R, GNUplot_path.toStdString());
     inout_operations.ExportQucsSchematic(R);
@@ -520,3 +527,10 @@ QString ui::getTopoScriptPath()
     return TopoScript_path;
 }
 
+
+
+void ui::QucsSchPathButton_clicked()
+{
+    QucsSchematicPath = QFileDialog::getSaveFileName(this,
+                                                     tr("Qucs schematic path"), QCoreApplication::applicationDirPath());
+}

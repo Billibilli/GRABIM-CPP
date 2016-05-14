@@ -5,8 +5,6 @@
 #include <armadillo>
 #include "sparengine.h"
 #include <queue>
-#include <QString>
-#include <QStringList>
 
 using namespace arma;
 using namespace std;
@@ -22,10 +20,10 @@ typedef struct GRABIM_Result {
     vec freq;
     cx_vec S11_gridsearch, S21_gridsearch, S12_gridsearch, S22_gridsearch;
     cx_vec S11_nlopt, S21_nlopt, S12_nlopt, S22_nlopt;
-    QString topology;
-    QString source_path;
-    QString load_path;
-    QString QucsVersion;
+    std::string topology;
+    std::string source_path;
+    std::string load_path;
+    std::string QucsVersion;
 
 } GRABIM_Result;
 

@@ -29,7 +29,7 @@ public:
 private:
     QPushButton * SourceFileButton, * LoadFileButton;
     QPushButton * RunButton, * CancelButton;
-    QPushButton * GNUplotButton;
+    QPushButton * GNUplotButton, *QucsSchematicPathButton;
     QPushButton * TopoScriptButton;
     QWidget * centralWidget;
     QSvgWidget *imgWidget;
@@ -48,6 +48,8 @@ private:
 
     QLabel *ZLOhmLabel, *ZSOhmLabel;
 
+    QString QucsSchematicPath;
+
  private slots:
 
     void ArbitraryTopology_clicked();
@@ -60,6 +62,7 @@ private:
     void FixedZSCheckbox_clicked();
     void FixedZLCheckbox_clicked();
     void TopoScriptButton_clicked();
+    void QucsSchPathButton_clicked();
 
     cx_double getComplexImpedanceFromText(char *);
 
