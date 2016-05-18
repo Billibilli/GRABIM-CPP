@@ -362,10 +362,7 @@ void GRABIM::CheckNetwork(rowvec & xk, unsigned int x_index, unsigned int topo_i
     if ((topo_index == 0) || (topo_index == topology.length()-1)) return;//It was removed the first or the last element. Any case below applies
     if (!strcmp(topology.substr(topo_index-1, 2).c_str(), "00"))//Two series inductors
     {
-       cout << xk << endl;
-       cout << xk.at(x_index-1) << " " << xk.at(x_index) << endl;
        xk.at(x_index-1) += xk.at(x_index);
-       cout << xk.at(x_index-1) << " " << xk.at(x_index) << endl;
        removeElement(xk, x_index, topo_index);
        return;
     }
