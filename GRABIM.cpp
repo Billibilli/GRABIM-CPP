@@ -199,12 +199,15 @@ rowvec GRABIM::GridSearch()
     // Factorial search
     for (int i = 0; i<4; i++, niter++)
     {
-        if ((best.min() < MatchingThreshold)&&(niter > Grid_MaxIter))
+        if ((best.min() < MatchingThreshold)&&(niter > Grid_MaxIter))//Stop condition
         {
             return xk;
         }
 
-        for (int q = 0; q<=pow(2, dim);q++)
+        dim = xk.n_cols;
+        CheckDim(C, xkq, best_pivot, dim);//InspectCandidate() may have shrunk the network, so it is needed to update the settings
+
+        for (int q = 0; q<=pow(2, dim);q++)//Calculates the vertices of the searching hypercube
         {
             step = delta_k.at(i)*C.col(q);
             xkq.row(q) = xk%(1. + step.t()*.99);
@@ -236,8 +239,6 @@ rowvec GRABIM::GridSearch()
         {
             if (best.at(i)-best.at(i-1)<-1e-3)//The current cycle did not improve the result
             {
-                uvec v_find = find(best < best.min()+1e-6);
-
                 //Suggestion for improvement. When GRABIM gets stuck, sometimes it helps to try some
                 //random vectors near the current pivot. The distribution was chosen to be U(-0.5, 0.5)
                 int Ncatchup  = 100;
@@ -281,7 +282,7 @@ int GRABIM::SearchPredefinedTopologies(rowvec & Vopt, std::string & candidate)
     cout << "Predefined networks..." << endl;
 
     vector<string> strlist;
-    std:string aux;
+    string aux;
     while (std::getline(TopologiesFile, aux))
     {
         if (aux.empty())continue;
@@ -300,7 +301,7 @@ int GRABIM::SearchPredefinedTopologies(rowvec & Vopt, std::string & candidate)
             while (getline(f, s, ';'))  strlist.push_back(s);
 
             x_ini.resize(1, (int) strlist.size());
-            for (int i = 0; i < strlist.size(); i++)
+            for (unsigned int i = 0; i < strlist.size(); i++)
             {
                 x_ini.at(i) = atof(strlist.at(i).c_str());
             }
@@ -321,7 +322,77 @@ int GRABIM::SearchPredefinedTopologies(rowvec & Vopt, std::string & candidate)
             Vopt = Vaux;
         }
     }
+    return 0;
 }
+
+// Whenever the impedance of a component is not significant (e.g. low series impedance or high shunt impedance) its
+// better to remove this component from the optimisation problem. This will lead to an improvement in terms of better convergence
+void GRABIM::removeElement(rowvec & xk, unsigned int pos, unsigned int postopo)
+{
+    rowvec aux(xk.n_elem-1);
+    int index = 0;
+    int element = atoi(topology.substr(postopo,1).c_str());
+    for (unsigned int i = 0; i < xk.n_elem; i++)//Removes component values from the working vector
+    {
+        if (element == 4)
+        {
+            if ((i == pos) || (i == pos+1)) continue;
+        }
+        if (i == pos) continue;
+        aux.at(index) = xk.at(i);
+        index++;
+    }
+    topology.erase(postopo, 1);//Removes the component from the topology indicator
+
+    //Reshape xk
+    xk.resize(aux.size());
+    xk=aux;
+}
+
+//This function is aimed to remove reduncancies in case some network element
+//is removed because of the irrelevance of its impedance
+void GRABIM::CheckNetwork(rowvec & xk, unsigned int x_index, unsigned int topo_index)
+{
+    //The following cases must be treated separatedly
+    // * Two series inductors
+    // * Two series capacitors
+    // * Two parallel inductors
+    // * Two parallel capacitors
+
+    if ((topo_index == 0) || (topo_index == topology.length()-1)) return;//It was removed the first or the last element. Any case below applies
+    if (!strcmp(topology.substr(topo_index-1, 2).c_str(), "00"))//Two series inductors
+    {
+       cout << xk << endl;
+       cout << xk.at(x_index-1) << " " << xk.at(x_index) << endl;
+       xk.at(x_index-1) += xk.at(x_index);
+       cout << xk.at(x_index-1) << " " << xk.at(x_index) << endl;
+       removeElement(xk, x_index, topo_index);
+       return;
+    }
+
+    if (!strcmp(topology.substr(topo_index-1, 2).c_str(), "11"))//Two series capacitors
+    {
+       xk.at(x_index-1) = (xk.at(x_index)*xk.at(x_index-1))/(xk.at(x_index)+xk.at(x_index-1));
+       removeElement(xk, x_index, topo_index);
+       return;
+    }
+
+    if (!strcmp(topology.substr(topo_index-1, 2).c_str(), "00"))//Two parallel inductors
+    {
+       xk.at(x_index-1) = (xk.at(x_index)*xk.at(x_index-1))/(xk.at(x_index)+xk.at(x_index-1));
+       removeElement(xk, x_index, topo_index);
+       return;
+    }
+
+    if (!strcmp(topology.substr(topo_index-1, 2).c_str(), "11"))//Two parallel capacitors
+    {
+       xk.at(x_index-1) += xk.at(x_index);
+       removeElement(xk, x_index, topo_index);
+       return;
+    }
+
+}
+
 
 // This function checks whether the candidate vector contains some
 // irrelevant value or not. Unsignificant values may prevent the algorithm
@@ -333,73 +404,89 @@ rowvec GRABIM::InspectCandidate(rowvec xk)
     double impedance, fmax = freq.max(), fmin = freq.min();
     unsigned int element;
     double wmax =2*datum::pi*fmax, wmin =2*datum::pi*fmin;
-    for (unsigned int i = 0; i < topology.length(); i++)
-    {
+    int index = 0;
+    for (unsigned int i = 0; i < topology.length(); i++)//Inspects all elements. aux is defined so as to take into account
+    {                                                   // those elements which depend on more than one variable (e.g.) TL
         element = atoi(topology.substr(i,1).c_str());
         switch(element)
         {
         case 0://Series inductor
-            impedance = wmax*xk.at(i);
+            impedance = wmax*xk.at(index);
             if (impedance < 1)
             {
-                xk.at(i) = 1e-30;
+                xk.at(index) = 1e-100;
+                removeElement(xk, index, i);//The element seems not to have an important effect on the network, so it can
+                                            // be removed
+                CheckNetwork(xk, index, i);//Avoid network redundancies (parallel/series capacitors/inductances)
             }
-            if (xk.at(i) < 0)//Inductance must be > 0, so it seems that a capacitor would do a better job
+            if (xk.at(index) < 0)//Inductance must be > 0, so it seems that a capacitor would do a better job
             {
-                xk.at(i) = 1./(2e3*wmin);//High impedance capacitor
+                xk.at(index) = 1./(2e3*wmin);//High impedance capacitor
                 topology[i] = '1';//Series capacitor
                 cout << "Warning: The selected topology leads to L < 0" <<endl;
                 cout << "Warging: Topology changed. The new topology is: " << topology << endl;
             }
+            index++;
             continue;
         case 2://Shunt inductor
-            impedance = wmin*xk.at(i);
+            impedance = wmin*xk.at(index);
             if (impedance > 4e3)
             {
-                xk.at(i) = 100;
+                xk.at(index) = 1e10;
+                removeElement(xk, index, i);
+                CheckNetwork(xk, index, i);//Avoid network redundancies (parallel/series capacitors/inductances)
             }
-            if (xk.at(i) < 0)//Inductance must be > 0, so it seems that a capacitor would do a better job
+            if (xk.at(index) < 0)//Inductance must be > 0, so it seems that a capacitor would do a better job
             {
-                xk.at(i) = 1./(2e3*wmin);//High impedance capacitor
+                xk.at(index) = 1./(2e3*wmin);//High impedance capacitor
                 topology[i]='3';//Shunt capacitor
                 cout << "Warning: The selected topology leads to L < 0" <<endl;
                 cout << "Warging: Topology changed. The new topology is: " << topology << endl;
             }
-
+            index++;
             continue;
         case 1://Series capacitor
-            impedance = 1./(wmin*xk.at(i));
+            impedance = 1./(wmin*xk.at(index));
             if (impedance < 1)
             {
-                xk.at(i) = 100;
+                xk.at(index) = 100;
+                removeElement(xk, index, i);
+                CheckNetwork(xk, index, i);//Avoid network redundancies (parallel/series capacitors/inductances)
             }
-            if (xk.at(i) < 0)//C must be > 0, so it seems that an inductor would do a better job
+            if (xk.at(index) < 0)//C must be > 0, so it seems that an inductor would do a better job
             {
-                xk.at(i) = 5./(wmax);//Low impedance inductance
+                xk.at(index) = 5./(wmax);//Low impedance inductance
                 topology[i] = '0';//Series inductance
                 cout << "Warning: The selected topology leads to C < 0" <<endl;
                 cout << "Warging: Topology changed. The new topology is: " << topology << endl;
             }
+            index++;
             continue;
         case 3://Shunt capacitor
-            impedance = 1./(wmax*xk.at(i));
+            impedance = 1./(wmax*xk.at(index));
             if (impedance > 4e3)
-            {xk.at(i) = 1e-30;}
-            if (xk.at(i) < 0)//C must be > 0, so it seems that an inductor would do a better job
             {
-                xk.at(i) = 5./(wmax);//Low impedance inductance
+                xk.at(index) = 1e-30;
+                removeElement(xk, index, i);
+                CheckNetwork(xk, index, i);//Avoid network redundancies (parallel/series capacitors/inductances)
+            }
+            if (xk.at(index) < 0)//C must be > 0, so it seems that an inductor would do a better job
+            {
+                xk.at(index) = 5./(wmax);//Low impedance inductance
                 topology[i] = '2';//Shunt inductance
                 cout << "Warning: The selected topology leads to C < 0" <<endl;
                 cout << "Warging: Topology changed. The new topology is: " << topology << endl;
             }
+            index++;
             continue;
         default://It is a transmission line or a stub
             double zmax = max(abs(ZS));
             if (zmax < max(abs(ZL))) zmax = max(abs(ZL));
-            if ((xk.at(i) > 5*zmax) || (xk.at(i+1) < 0))//Something is wrong...
+            if ((xk.at(index) > 5*zmax) || (xk.at(index+1) < 0))//Something is wrong...
             {
                 return -1*ones(1, xk.n_cols);
             }
+            index += 2;//Two parameters: Z0 and length
 
 
         }
@@ -428,7 +515,6 @@ double GRABIM::CandidateEval(rowvec x)
     SparEngine S2PEngine;
     for (unsigned int i = 0; i < freq.n_elem; i++)
     {
-//cout << freq << endl;
         if (ObjFun == ObjectiveFunction::NINF_S11dB)
         {
             S = S2PEngine.getSparams(x, ZS.at(i), ZL.at(i), freq.at(i), topology);
@@ -603,10 +689,10 @@ void GRABIM::AutoSetInitialPivot()
     queue <double> XINI;
     for (unsigned int i = 0; i< topology.size();i++)
     {
-        if (!topology.substr(i,1).compare("0")) XINI.push(10/meanw);//Series impedance at midband ~ 5 Ohm
-        if (!topology.substr(i,1).compare("2")) XINI.push(50/meanw);//Parallel impedance at midband ~ 100 Ohm
-        if (!topology.substr(i,1).compare("1")) XINI.push(1/(10*meanw));//Series impedance at midband ~ 5 Ohm
-        if (!topology.substr(i,1).compare("3")) XINI.push(1/(500*meanw));//Parallel impedance at midband ~ 100 Ohm
+        if (!topology.substr(i,1).compare("0")) XINI.push(20/meanw);//Series impedance at midband ~ 5 Ohm
+        if (!topology.substr(i,1).compare("2")) XINI.push(300/meanw);//Parallel impedance at midband ~ 100 Ohm
+        if (!topology.substr(i,1).compare("1")) XINI.push(1/(20*meanw));//Series impedance at midband ~ 5 Ohm
+        if (!topology.substr(i,1).compare("3")) XINI.push(1/(300*meanw));//Parallel impedance at midband ~ 100 Ohm
         if((!topology.substr(i,1).compare("5"))||(!topology.substr(i,1).compare("6")))XINI.push(real(mean(ZS+ZL))),XINI.push(lambda4);
 
         if (!topology.substr(i,1).compare("4"))//Transmission line
@@ -633,4 +719,19 @@ void GRABIM::AutoSetInitialPivot()
 void GRABIM::setTopoScript(std::string path)
 {
     TopoScript_path = path;
+}
+
+
+//
+void GRABIM::CheckDim(mat & C, mat & xkq, mat & best_pivot, unsigned int dim)
+{
+    if (xkq.n_cols != dim)//The current network has changed
+    {
+      C.resize(dim, pow(2, dim)+1);
+      C = GeneratingMatrix(dim);
+      xkq.resize(pow(2, dim)+1, dim);
+      xkq.ones();
+      best_pivot.resize(4, dim);
+      best_pivot.ones();
+    }
 }

@@ -23,6 +23,8 @@ public:
     void setLocalOptimiser(nlopt::algorithm);
     nlopt::algorithm getLocalOptimiser();
     int ExportQucsSchematic(GRABIM_Result);
+    void set_qucs_sch_path(string);
+    string get_qucs_sch_path();
 
 
 
@@ -53,6 +55,8 @@ private:
 
     string Num2String(int x);
     string Num2String(double x);
+
+    string QucsSchematicPath;
 };
 
 #endif // IO_H

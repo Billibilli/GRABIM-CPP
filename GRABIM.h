@@ -85,6 +85,9 @@ private:
 
     int SearchPredefinedTopologies(rowvec &, std::string &);
     void AutoSetInitialPivot();
+    void removeElement(rowvec & xk, unsigned int pos, unsigned int postopo);
+    void CheckDim(mat &, mat &, mat &, unsigned int);
+    void CheckNetwork(rowvec &, unsigned int, unsigned int);
 
 
 };

@@ -120,10 +120,11 @@ int IO::loadS1Pdata(std::string filepath, terminal Port)
     int Rindex = line.find_last_of("r");
     Rindex = line.find_first_not_of(" ", Rindex);
     Zref = atof(line.substr(Rindex+1).c_str());
-    bool is_indB = (line.find("db") != -1);
-    bool RI = (line.find("ma") == -1);
-    bool isS_par = (line.find(" s ") != -1);
-    bool isZ_par = (line.find(" z ") != -1);
+
+    bool is_indB = (line.find("db") != string::npos);
+    bool RI = (line.find("ma") == string::npos);
+    bool isS_par = (line.find(" s ") != string::npos);
+    bool isZ_par = (line.find(" z ") != string::npos);
 
 
     while( getline(s2pfile, line) )
@@ -486,16 +487,16 @@ int IO::SchematicParser(GRABIM_Result R, int & x_pos, string & componentstr, str
 
         if (!component.compare("0"))//Series inductor
         {
-            componentstr += "<L L1 1 " + Num2String(x_pos+60) + " -120 -26 10 0 0 \"" + Num2String(R.x_nlopt.at(value_index)) + "\" 1 "" 0>\n";
+            componentstr += "<L L1 1 " + Num2String(x_pos+60) + " -120 -26 10 0 0 \"" + Num2String(R.x_nlopt.at(value_index)) + "\" 1 \"\" 0>\n";
             wirestr +=  "<" + Num2String(x_pos) + " -120 " +  Num2String(x_pos+30) + " -120 \"\" 0 0 0 \"\">\n";
-            wirestr += "<" + Num2String(x_pos+90) + " -120 " + Num2String(x_pos+x_series) + " -120 "" 0 0 0 "">\n";
+            wirestr += "<" + Num2String(x_pos+90) + " -120 " + Num2String(x_pos+x_series) + " -120 \"\" 0 0 0 \"\">\n";
             x_pos += x_series;
             value_index++;
         }
         else if (!component.compare("1"))//Series capacitor
         {
             componentstr += "<C C1 1 " + Num2String(x_pos+60) + " -120 -26 17 0 0 \"" + Num2String(R.x_nlopt.at(value_index)) + "\" 1 "" 0>\n";
-            wirestr += "<" + Num2String(x_pos) + " -120 " + Num2String(x_pos+30) + " -120 "" 0 0 0 "">\n";
+            wirestr += "<" + Num2String(x_pos) + " -120 " + Num2String(x_pos+30) + " -120 \"\" 0 0 0 \"\">\n";
             wirestr += "<"+ Num2String(x_pos+90) +" -120 " + Num2String(x_pos+x_series) + " -120 \"\" 0 0 0 \"\">\n";
             x_pos += x_series;
             value_index++;
@@ -503,8 +504,8 @@ int IO::SchematicParser(GRABIM_Result R, int & x_pos, string & componentstr, str
         else if (!component.compare("2"))//Shunt inductor
         {
             componentstr += "<GND * 1 " + Num2String(x_pos) + " 0 0 0 0 0>\n";
-            componentstr += "<L L1 1 " + Num2String(x_pos) + " -30 -26 2 0 1 \"" + Num2String(R.x_nlopt.at(value_index)) + "\" 1 "" 0>\n";
-            wirestr += "<" + Num2String(x_pos) + "-60 " + Num2String(x_pos) +" -120 \"\" 0 0 0 "">\n";
+            componentstr += "<L L1 1 " + Num2String(x_pos) + " -30 -26 2 0 1 \"" + Num2String(R.x_nlopt.at(value_index)) + "\" 1 \"\" 0>\n";
+            wirestr += "<" + Num2String(x_pos) + " -60 " + Num2String(x_pos) +" -120 \"\" 0 0 0 \"\">\n";
             wirestr += "<" + Num2String(x_pos) + " -120 " + Num2String(x_pos+x_shunt) + " -120 \"\" 0 0 0 "">\n";
             x_pos += x_shunt;
             value_index++;
@@ -512,25 +513,25 @@ int IO::SchematicParser(GRABIM_Result R, int & x_pos, string & componentstr, str
         else if (!component.compare("3"))//Shunt capacitor
         {
             componentstr += "<GND * 1 " + Num2String(x_pos) + " 0 0 0 0 0>\n";
-            componentstr += "<C C1 1 " + Num2String(x_pos) + " -30 -26 17 0 1 \"" + Num2String(R.x_nlopt.at(value_index)) + "\" 1 "" 0>\n";
-            wirestr += "<" + Num2String(x_pos) +" -60 " + Num2String(x_pos) + " -120 \"\" 0 0 0 "">\n";
-            wirestr += "<" + Num2String(x_pos) + " -120 " + Num2String(x_pos+x_shunt) + " -120 "" 0 0 0 "">\n";
+            componentstr += "<C C1 1 " + Num2String(x_pos) + " -30 -26 17 0 1 \"" + Num2String(R.x_nlopt.at(value_index)) + "\" 1 \"\" 0>\n";
+            wirestr += "<" + Num2String(x_pos) +" -60 " + Num2String(x_pos) + " -120 \"\" 0 0 0 \"\">\n";
+            wirestr += "<" + Num2String(x_pos) + " -120 " + Num2String(x_pos+x_shunt) + " -120 \"\" 0 0 0 "">\n";
             x_pos += x_shunt;
             value_index++;
         }
         else if (!component.compare("4"))//Transmission line
         {
             componentstr += "<TLIN Line1 1 " + Num2String(x_pos+60) + " -120 -26 20 0 0 \"" + Num2String(R.x_nlopt.at(value_index)) + "\" 1 \"" + Num2String(R.x_nlopt.at(value_index+1)) + "\" 1 \"0 dB\" 0 \"26.85\" 0>\n";
-            wirestr += "<" + Num2String(x_pos) + " -120 " + Num2String(x_pos+30) + " -120 "" 0 0 0 "">\n";
-            wirestr += "<" + Num2String(x_pos+90) + " -120 " + Num2String(x_pos+x_series) + " -120 \"\" 0 0 0 "">\n";
+            wirestr += "<" + Num2String(x_pos) + " -120 " + Num2String(x_pos+30) + " -120 \"\" 0 0 0 \"\">\n";
+            wirestr += "<" + Num2String(x_pos+90) + " -120 " + Num2String(x_pos+x_series) + " -120 \"\" 0 0 0 \"\">\n";
             x_pos += x_series;
             value_index+=2;
         }
         else if (!component.compare("5"))//Open stub
         {
             componentstr += "<TLIN Line1 1 " + Num2String(x_pos) + " -60 -26 20 0 1 \"" + Num2String(R.x_nlopt.at(value_index)) + "\" 1 \"" + Num2String(R.x_nlopt.at(value_index+1)) + "\" 1 \"0 dB\" 0 \"26.85\" 0>\n";
-            wirestr += "<" + Num2String(x_pos) + "-90 " + Num2String(x_pos) + " -120 \"\" 0 0 0 "">\n";
-            wirestr += "<" + Num2String(x_pos) + " -120 "+ Num2String(x_pos+x_shunt) + " -120 \"\" 0 0 0 "">\n";
+            wirestr += "<" + Num2String(x_pos) + "-90 " + Num2String(x_pos) + " -120 \"\" 0 0 0 \"\">\n";
+            wirestr += "<" + Num2String(x_pos) + " -120 "+ Num2String(x_pos+x_shunt) + " -120 \"\" 0 0 0 \"\">\n";
             x_pos += x_shunt;
             value_index+=2;
         }
@@ -538,14 +539,16 @@ int IO::SchematicParser(GRABIM_Result R, int & x_pos, string & componentstr, str
         {
             componentstr += "<TLIN Line1 1 " + Num2String(x_pos) + " -60 -26 20 0 1 \"" + Num2String(R.x_nlopt.at(value_index)) + "\" 1 \""+Num2String(R.x_nlopt.at(value_index+1))+"\" 1 \"0 dB\" 0 \"26.85\" 0>\n";
             componentstr += "<GND * 1 " + Num2String(x_pos) + " -30 0 0 0 0>\n";
-            wirestr += "<" + Num2String(x_pos) +" -90 " + Num2String(x_pos) + " -120 "" 0 0 0 "">\n";
-            wirestr += "<" + Num2String(x_pos) + "-120 " + Num2String(x_pos+x_shunt) + "-120 \"\" 0 0 0 "">\n";
+            wirestr += "<" + Num2String(x_pos) +" -90 " + Num2String(x_pos) + " -120 \"\" 0 0 0 \"\">\n";
+            wirestr += "<" + Num2String(x_pos) + "-120 " + Num2String(x_pos+x_shunt) + "-120 \"\" 0 0 0 \"\">\n";
             x_pos += x_shunt;
             value_index+=2;
         }
 
     }
 
+    double spacing = 30;
+    x_pos += spacing;
 
     if ((R.load_path.empty()) && (abs(ZL.at(0).imag()) < 1e-3) && (ZL.at(0).real() > 1e-3))
     {//Conventional term
@@ -553,13 +556,13 @@ int IO::SchematicParser(GRABIM_Result R, int & x_pos, string & componentstr, str
         componentstr += "<GND * 1 "+Num2String(x_pos)+" 0 0 0 0 0>\n";
 
         wirestr += "<" + Num2String(x_pos) + " -60 " + Num2String(x_pos) + " -120>\n";
+        wirestr += "<" + Num2String(x_pos-spacing) + " -120 " + Num2String(x_pos) + " -120>\n";
     }
     else
     {//Place a S-param file
-        componentstr += "<SPfile X1 1 " + Num2String(x_pos) + " -120 -26 -67 0 0 \"" + R.load_path + "\" 1 \"rectangular\" 0 \"linear\" 0 \"open\" 0 \"1\" 0>";
-        componentstr += "<GND * 1 " + Num2String(x_pos) + " -150 0 0 0 0>";
+        componentstr += "<SPfile X1 1 " + Num2String(x_pos) + " -120 -26 -67 0 0 \"" + R.load_path + "\" 1 \"rectangular\" 0 \"linear\" 0 \"open\" 0 \"1\" 0>\n";
+        componentstr += "<GND * 1 " + Num2String(x_pos) + " -90 0 0 0 0>\n";
     }
-
     return 0;
 }
 
@@ -573,7 +576,7 @@ bool IO::CreateSchematic(string components, string wires, string paintings, stri
 
     //Add components
     Schematic += "<Components>\n";
-    Schematic+=components;
+    Schematic += components;
     Schematic += "</Components>\n";
 
     //Add wires
@@ -587,7 +590,7 @@ bool IO::CreateSchematic(string components, string wires, string paintings, stri
     Schematic += "</Paintings>\n";
 
     //Save Qucs file
-    std::ofstream QucsFile("GRABIM_result.sch");
+    std::ofstream QucsFile(QucsSchematicPath);
 
        if(!QucsFile)
        {
@@ -613,4 +616,15 @@ string IO::Num2String(int x)
     std::ostringstream s;
     s << x;
     return s.str();
+}
+
+void IO::set_qucs_sch_path(string s)
+{
+    QucsSchematicPath = s;
+}
+
+
+string IO::get_qucs_sch_path()
+{
+    return QucsSchematicPath;
 }
