@@ -628,3 +628,39 @@ string IO::get_qucs_sch_path()
 {
     return QucsSchematicPath;
 }
+
+
+void IO::PrintNetwork_StandardOutput(GRABIM_Result Res)
+{
+    printf("\n+----SRC-----+");
+    for(unsigned int i=0;i<Res.topology.size();i++)
+        {
+                                          cout<<"\n|            |  ";
+    if(!Res.topology.substr(i,1).compare("0"))cout<<"\n|            L  "<<Res.x_nlopt[i]*1E9 << "nH";
+    if(!Res.topology.substr(i,1).compare("1"))cout<<"\n|            C  "<<Res.x_nlopt[i]*1E12<< "pF";
+    if(!Res.topology.substr(i,1).compare("2"))cout<<"\n+-----L------+  "<<Res.x_nlopt[i]*1E9 << "nH";
+    if(!Res.topology.substr(i,1).compare("3"))cout<<"\n+-----C------+  "<<Res.x_nlopt[i]*1E12<< "pF";
+    if(!Res.topology.substr(i,1).compare("4"))cout<<"\n|            T  "<<
+                                                "\n|            l  "<<Res.x_nlopt[i] << " " << Res.x_nlopt[i+1], i++;
+    if(!Res.topology.substr(i,1).compare("5"))cout<<"\n|      oc+stub  "<<Res.x_nlopt[i] << " " << Res.x_nlopt[i+1], i++;
+    if(!Res.topology.substr(i,1).compare("6"))cout<<"\n|      sc+stub  "<<Res.x_nlopt[i] << " " << Res.x_nlopt[i+1], i++;
+                                          cout<<"\n|            |  ";
+        }
+    printf("\n+----LOAD----+\n\n");
+
+
+    //This is a log of successful results, every time the algorithm reaches a good matching
+    //condition, the both the problem and the best topology are save in order to gather
+    //information for future purposes.
+    if (Res.nlopt_val < -12)//Good matching
+    {
+    std::ofstream TrainingFile("training", ios_base::app);
+    TrainingFile << Res.ZS.at(0) << " " << Res.ZS.at(round(2*Nsamples/5)-1) << " " << Res.ZS.at(round(3*Nsamples/5)-1) << " " << Res.ZS.at(round(4*Nsamples/5)-1) << " " << Res.ZS.at(Nsamples-1) << endl;
+    TrainingFile << Res.ZL.at(0) << " " << Res.ZL.at(round(2*Nsamples/5)-1) << " " << Res.ZL.at(round(3*Nsamples/5)-1) << " " << Res.ZL.at(round(4*Nsamples/5)-1) << " " << Res.ZL.at(Nsamples-1) << endl;
+    TrainingFile << Res.freq.min() << endl;
+    TrainingFile << Res.freq.max() << endl;
+    TrainingFile << Res.topology << endl;
+    TrainingFile << "###" << endl;
+    TrainingFile.close();
+    }
+}

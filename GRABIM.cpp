@@ -463,7 +463,7 @@ rowvec GRABIM::InspectCandidate(rowvec xk)
             impedance = 1./(wmax*xk.at(index));
             if (impedance > 4e3)
             {
-                xk.at(index) = 1e-30;
+                 xk.at(index) = 1e-30;
                 removeElement(xk, index, i);
                 CheckNetwork(xk, index, i);//Avoid network redundancies (parallel/series capacitors/inductances)
             }
@@ -577,8 +577,8 @@ rowvec GRABIM::LocalOptimiser(rowvec x_grid)
         int element = atoi(topology.substr(i,1).c_str());
         if (element < 4)
         {
-            lb[k] = 1e-20;
-            ub[k] = 1e-6;
+            lb[k] = 0;
+            ub[k] = 1;
         }
         else
         {
@@ -590,8 +590,8 @@ rowvec GRABIM::LocalOptimiser(rowvec x_grid)
 
 
     // It seems that NLopt sometimes crashes because of the limits...
-    // opt.set_lower_bounds(lb);
-    // opt.set_upper_bounds(ub);
+     opt.set_lower_bounds(lb);
+     opt.set_upper_bounds(ub);
 
     std::vector<double> x(dim);
     for (int i = 0; i < dim; i++)x[i] = x_grid.at(i);
