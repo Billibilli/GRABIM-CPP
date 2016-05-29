@@ -25,7 +25,7 @@ public:
     int ExportQucsSchematic(GRABIM_Result);
     void set_qucs_sch_path(string);
     string get_qucs_sch_path();
-
+    void PrintNetwork_StandardOutput(GRABIM_Result);
 
 
 private:

@@ -633,17 +633,18 @@ string IO::get_qucs_sch_path()
 void IO::PrintNetwork_StandardOutput(GRABIM_Result Res)
 {
     printf("\n+----SRC-----+");
-    for(unsigned int i=0;i<Res.topology.size();i++)
+    unsigned int index = 0;
+    for(unsigned int i=0;i<Res.topology.size();i++, index++)
         {
                                           cout<<"\n|            |  ";
-    if(!Res.topology.substr(i,1).compare("0"))cout<<"\n|            L  "<<Res.x_nlopt[i]*1E9 << "nH";
-    if(!Res.topology.substr(i,1).compare("1"))cout<<"\n|            C  "<<Res.x_nlopt[i]*1E12<< "pF";
-    if(!Res.topology.substr(i,1).compare("2"))cout<<"\n+-----L------+  "<<Res.x_nlopt[i]*1E9 << "nH";
-    if(!Res.topology.substr(i,1).compare("3"))cout<<"\n+-----C------+  "<<Res.x_nlopt[i]*1E12<< "pF";
+    if(!Res.topology.substr(i,1).compare("0"))cout<<"\n|            L  "<<Res.x_nlopt[index]*1E9 << "nH";
+    if(!Res.topology.substr(i,1).compare("1"))cout<<"\n|            C  "<<Res.x_nlopt[index]*1E12<< "pF";
+    if(!Res.topology.substr(i,1).compare("2"))cout<<"\n+-----L------+  "<<Res.x_nlopt[index]*1E9 << "nH";
+    if(!Res.topology.substr(i,1).compare("3"))cout<<"\n+-----C------+  "<<Res.x_nlopt[index]*1E12<< "pF";
     if(!Res.topology.substr(i,1).compare("4"))cout<<"\n|            T  "<<
-                                                "\n|            l  "<<Res.x_nlopt[i] << " " << Res.x_nlopt[i+1], i++;
-    if(!Res.topology.substr(i,1).compare("5"))cout<<"\n|      oc+stub  "<<Res.x_nlopt[i] << " " << Res.x_nlopt[i+1], i++;
-    if(!Res.topology.substr(i,1).compare("6"))cout<<"\n|      sc+stub  "<<Res.x_nlopt[i] << " " << Res.x_nlopt[i+1], i++;
+                                                "\n|            l  "<<Res.x_nlopt[index] << " " << Res.x_nlopt[index+1], index++;
+    if(!Res.topology.substr(i,1).compare("5"))cout<<"\n|      oc+stub  "<<Res.x_nlopt[index] << " " << Res.x_nlopt[index+1], index++;
+    if(!Res.topology.substr(i,1).compare("6"))cout<<"\n|      sc+stub  "<<Res.x_nlopt[index] << " " << Res.x_nlopt[index+1], index++;
                                           cout<<"\n|            |  ";
         }
     printf("\n+----LOAD----+\n\n");

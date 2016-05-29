@@ -114,11 +114,18 @@ ui::ui()
        helpbox->addWidget(CodeLabel);
 
        ArbitraryTopologyLineEdit =  new QLineEdit();
-
        ArbitraryTopologyLineEdit->setEnabled(false);
+
+       SearchModeCombo = new QComboBox();
+       SearchModeCombo->insertItem(0,"Script");
+       SearchModeCombo->insertItem(1,"Precomputed set");
+       SearchModeCombo->insertItem(2,"LC order 4");
+       SearchModeCombo->insertItem(3,"LC + TL order 6");
+       SearchModeCombo->insertItem(4,"LC + TL + Stubs order 6");
        TopoLayout->addWidget(ArbitraryTopology, 0, 0);
        TopoLayout->addWidget(ArbitraryTopologyLineEdit, 0, 1);
        TopoLayout->addWidget(SearchBestTopology, 1, 0);
+       TopoLayout->addWidget(SearchModeCombo, 1, 1);
 
 
        connect(ArbitraryTopology, SIGNAL(clicked()), this, SLOT(ArbitraryTopology_clicked()));
@@ -372,6 +379,8 @@ void ui::go_clicked()
     {//Search over the predefined circuit set
        MatchingObject.SetTopology("-1");
     }
+
+    MatchingObject.setSearchMode(SearchModeCombo->currentIndex());
 
     // Set local optimiser
     switch(LocalOptCombo->currentIndex())

@@ -5,11 +5,12 @@
 #include <armadillo>
 #include "sparengine.h"
 #include <queue>
+#include <list>
 
 using namespace arma;
 using namespace std;
 
-enum ObjectiveFunction {NINF_S11dB, NINF_POWERTRANS};
+enum ObjectiveFunction {NINF_S11dB, NINF_POWERTRANS, MAX_BW};
 
 typedef struct GRABIM_Result {
     rowvec x_grid_search;
@@ -58,6 +59,8 @@ public:
     ObjectiveFunction GetObjectiveFunction();
 
     void setTopoScript(std::string);
+    void setSearchMode(int);
+    void SimplifyNetwork(bool);
 
 private:
     rowvec GridSearch();
@@ -65,6 +68,7 @@ private:
     int ResampleImpedances();
     mat GeneratingMatrix(int);
     double CalcInvPowerTransfer(cx_mat, cx_double, cx_double);
+    double calculate_max_bw_fobj(rowvec);
     rowvec InspectCandidate(rowvec);
     rowvec x_ini;
 
@@ -77,19 +81,23 @@ private:
     double MatchingThreshold;
     nlopt::algorithm NLoptAlgo;
     ObjectiveFunction ObjFun;
+    int search_mode;
 
     string tolower(string str);
     string RemoveBlankSpaces(string line);
 
     std::string TopoScript_path;
 
-    int SearchPredefinedTopologies(rowvec &, std::string &);
+    int GridSearch_DifferentTopologies(rowvec &, std::string &);
     void AutoSetInitialPivot();
     void removeElement(rowvec & xk, unsigned int pos, unsigned int postopo);
     void CheckDim(mat &, mat &, mat &, unsigned int);
     void CheckNetwork(rowvec &, unsigned int, unsigned int);
 
+    list<string> TopoList;
+    list<string> TagList;
 
+    bool simplify_network;
 };
 
 #endif // GRABIM_H

@@ -1,4 +1,4 @@
-#include "GRABIM.h"
+﻿#include "GRABIM.h"
 
 GRABIM::GRABIM()
 {
@@ -6,6 +6,7 @@ GRABIM::GRABIM()
     Grid_MaxIter = 1000;
     MatchingThreshold = -30;//It specifies the mininum S11 [dB] required, typically,
     //S11 < 10 dB is considered as valid for common applications
+    simplify_network = true;
 
     ObjFun = ObjectiveFunction::NINF_S11dB;//Sets the kind of objective functions. Everything seems to
     //suggest that NINF_S11dB gives the best results
@@ -91,21 +92,16 @@ double GRABIM::GetThreshold()
 GRABIM_Result GRABIM::RunGRABIM()
 {
     GRABIM_Result Res;
-    if (!topology.compare("-1"))//The user did not entered any specific network, so it seems
-    {//reasonable to try some typical wideband matching network
-        rowvec Vopt;
-        string candidate;
 
-        SearchPredefinedTopologies(Vopt, candidate);
+    rowvec Vopt;
+    string candidate;
 
-        topology = candidate;
-        Res.x_grid_search = Vopt;
-    }
-    else//It builds an initial vector using default values 1nH for inductances, 1 pF for capacitors, 100 Ohm & lambda/4 for transmission lines
-    {
-        AutoSetInitialPivot();
-        Res.x_grid_search = GridSearch();
-    }
+    GridSearch_DifferentTopologies(Vopt, candidate);
+
+    topology = candidate;
+    Res.x_grid_search = Vopt;
+
+
 
     Res.grid_val = CandidateEval(Res.x_grid_search);
     Res.x_nlopt = LocalOptimiser(Res.x_grid_search);
@@ -268,52 +264,23 @@ rowvec GRABIM::GridSearch()
 
 
 //This function searches the optimum over a predefined circuit topologies
-int GRABIM::SearchPredefinedTopologies(rowvec & Vopt, std::string & candidate)
+int GRABIM::GridSearch_DifferentTopologies(rowvec & Vopt, std::string & candidate)
 {
     double gridtest, opttopo = 1e12;
-    std::ifstream TopologiesFile(TopoScript_path);//Tries to open the file.
-    std::string line, tag;
     rowvec Vaux;
-    if(!TopologiesFile.is_open())//The data file cannot be opened => error
+    string tag;
+
+    unsigned int n_topo = TopoList.size();
+    for (unsigned int i = 0; i < n_topo; i++)
     {
-        return -1;
-    }
-
-    cout << "Predefined networks..." << endl;
-
-    vector<string> strlist;
-    string aux;
-    while (std::getline(TopologiesFile, aux))
-    {
-        if (aux.empty())continue;
-        if (aux.substr(0,1).compare("#")==0)
-        {
-            tag = aux;
-            continue;
-        }
-        topology = aux;
-        std::getline(TopologiesFile, line);
-
-        if (!line.empty())
-        {//Check whether the initial pivot is given in the script or not
-            istringstream f(line);
-            std::string s;
-            while (getline(f, s, ';'))  strlist.push_back(s);
-
-            x_ini.resize(1, (int) strlist.size());
-            for (unsigned int i = 0; i < strlist.size(); i++)
-            {
-                x_ini.at(i) = atof(strlist.at(i).c_str());
-            }
-        }
-        else
-        {//The script does not provide an initial pivot, so we need to use
-         // the default one.
-            AutoSetInitialPivot();
-        }
+        topology = TopoList.front();
+        tag = TagList.front();
+        TopoList.pop_front();
+        TagList.pop_front();
+        AutoSetInitialPivot();
         Vaux = GridSearch();
         gridtest = CandidateEval(Vaux);
-        cout << tag << ": S11_min = " <<  gridtest << " dB" << endl;
+        cout << 100.*(i+1)/n_topo<< "% completed. " << tag << ": S11_min = " <<  gridtest << " dB" << endl;
 
         if (gridtest < opttopo - 0.5)//It worths to change the topology if the new one improves the result significantly
         {
@@ -362,30 +329,30 @@ void GRABIM::CheckNetwork(rowvec & xk, unsigned int x_index, unsigned int topo_i
     if ((topo_index == 0) || (topo_index == topology.length()-1)) return;//It was removed the first or the last element. Any case below applies
     if (!strcmp(topology.substr(topo_index-1, 2).c_str(), "00"))//Two series inductors
     {
-       xk.at(x_index-1) += xk.at(x_index);
-       removeElement(xk, x_index, topo_index);
-       return;
+        xk.at(x_index-1) += xk.at(x_index);
+        removeElement(xk, x_index, topo_index);
+        return;
     }
 
     if (!strcmp(topology.substr(topo_index-1, 2).c_str(), "11"))//Two series capacitors
     {
-       xk.at(x_index-1) = (xk.at(x_index)*xk.at(x_index-1))/(xk.at(x_index)+xk.at(x_index-1));
-       removeElement(xk, x_index, topo_index);
-       return;
+        xk.at(x_index-1) = (xk.at(x_index)*xk.at(x_index-1))/(xk.at(x_index)+xk.at(x_index-1));
+        removeElement(xk, x_index, topo_index);
+        return;
     }
 
-    if (!strcmp(topology.substr(topo_index-1, 2).c_str(), "00"))//Two parallel inductors
+    if (!strcmp(topology.substr(topo_index-1, 2).c_str(), "22"))//Two parallel inductors
     {
-       xk.at(x_index-1) = (xk.at(x_index)*xk.at(x_index-1))/(xk.at(x_index)+xk.at(x_index-1));
-       removeElement(xk, x_index, topo_index);
-       return;
+        xk.at(x_index-1) = (xk.at(x_index)*xk.at(x_index-1))/(xk.at(x_index)+xk.at(x_index-1));
+        removeElement(xk, x_index, topo_index);
+        return;
     }
 
-    if (!strcmp(topology.substr(topo_index-1, 2).c_str(), "11"))//Two parallel capacitors
+    if (!strcmp(topology.substr(topo_index-1, 2).c_str(), "33"))//Two parallel capacitors
     {
-       xk.at(x_index-1) += xk.at(x_index);
-       removeElement(xk, x_index, topo_index);
-       return;
+        xk.at(x_index-1) += xk.at(x_index);
+        removeElement(xk, x_index, topo_index);
+        return;
     }
 
 }
@@ -409,11 +376,11 @@ rowvec GRABIM::InspectCandidate(rowvec xk)
         {
         case 0://Series inductor
             impedance = wmax*xk.at(index);
-            if (impedance < 1)
+            if ((impedance < 1) && (simplify_network))
             {
                 xk.at(index) = 1e-100;
                 removeElement(xk, index, i);//The element seems not to have an important effect on the network, so it can
-                                            // be removed
+                // be removed
                 CheckNetwork(xk, index, i);//Avoid network redundancies (parallel/series capacitors/inductances)
             }
             if (xk.at(index) < 0)//Inductance must be > 0, so it seems that a capacitor would do a better job
@@ -421,13 +388,13 @@ rowvec GRABIM::InspectCandidate(rowvec xk)
                 xk.at(index) = 1./(2e3*wmin);//High impedance capacitor
                 topology[i] = '1';//Series capacitor
                 cout << "Warning: The selected topology leads to L < 0" <<endl;
-                cout << "Warging: Topology changed. The new topology is: " << topology << endl;
+                cout << "Warning: Topology changed. The new topology is: " << topology << endl;
             }
             index++;
             continue;
         case 2://Shunt inductor
             impedance = wmin*xk.at(index);
-            if (impedance > 4e3)
+            if ((impedance > 4e3) && (simplify_network))
             {
                 xk.at(index) = 1e10;
                 removeElement(xk, index, i);
@@ -444,7 +411,7 @@ rowvec GRABIM::InspectCandidate(rowvec xk)
             continue;
         case 1://Series capacitor
             impedance = 1./(wmin*xk.at(index));
-            if (impedance < 1)
+            if ((impedance < 1) && (simplify_network))
             {
                 xk.at(index) = 100;
                 removeElement(xk, index, i);
@@ -461,9 +428,9 @@ rowvec GRABIM::InspectCandidate(rowvec xk)
             continue;
         case 3://Shunt capacitor
             impedance = 1./(wmax*xk.at(index));
-            if (impedance > 4e3)
+            if ((impedance > 4e3) && (simplify_network))
             {
-                 xk.at(index) = 1e-30;
+                xk.at(index) = 1e-30;
                 removeElement(xk, index, i);
                 CheckNetwork(xk, index, i);//Avoid network redundancies (parallel/series capacitors/inductances)
             }
@@ -477,11 +444,14 @@ rowvec GRABIM::InspectCandidate(rowvec xk)
             index++;
             continue;
         default://It is a transmission line or a stub
-            double zmax = max(abs(ZS));
-            if (zmax < max(abs(ZL))) zmax = max(abs(ZL));
-            if ((xk.at(index) > 5*zmax) || (xk.at(index+1) < 0))//Something is wrong...
+            if (xk.at(index) < 0)//Something is wrong...
             {
-                return -1*ones(1, xk.n_cols);
+                xk.at(index) = .5*(mean(abs(ZS))+mean(abs(ZL)));
+            }
+            if (xk.at(index+1) < 0)
+            {
+                double lambda = c0/mean(freq);
+                do{xk.at(index+1) += lambda/2;} while(xk.at(index+1)<=0);
             }
             index += 2;//Two parameters: Z0 and length
 
@@ -510,20 +480,26 @@ double GRABIM::CandidateEval(rowvec x)
     double fobj = -1e3;
     cx_mat S, ABCD;
     SparEngine S2PEngine;
+    cx_rowvec s11 (freq.n_elem);
     for (unsigned int i = 0; i < freq.n_elem; i++)
     {
         if (ObjFun == ObjectiveFunction::NINF_S11dB)
         {
             S = S2PEngine.getSparams(x, ZS.at(i), ZL.at(i), freq.at(i), topology);
-            if (abs(S(0,0)) > fobj) fobj = abs(S(0,0));
+            if (abs(S(0,0)) > fobj) fobj = abs(S(0,0));//N inf
         }
         if (ObjFun == ObjectiveFunction::NINF_POWERTRANS)
         {
             ABCD = S2PEngine.getABCDmatrix(x, freq.at(i), topology);
             fobj = CalcInvPowerTransfer(ABCD, ZS.at(i), ZL.at(i));
         }
+        /*   if (ObjFun == ObjectiveFunction::MAX_BW)
+        {
+            s11.at(i) = S2PEngine.getSparams(x, ZS.at(i), ZL.at(i), freq.at(i), topology).row(0).col(0);
+        }*/
     }
     if (ObjFun == ObjectiveFunction::NINF_S11dB)fobj = 20*log10(fobj);//|grad{log(x)}| > |grad{x}| when x < 1;
+    //if (ObjFun == ObjectiveFunction::MAX_BW)    fobj = calculate_max_bw_fobj(s11);
     return fobj;
 }
 
@@ -567,7 +543,7 @@ rowvec GRABIM::LocalOptimiser(rowvec x_grid)
     opt.set_min_objective(myfunc, &n);
     opt.set_stopval(this->GetThreshold()-10);
     opt.set_maxeval(1e6);
-    // opt.set_xtol_rel(1e-4);
+    opt.set_xtol_rel(1e-2);
 
     //Bounds
     std::vector<double> lb(dim), ub(dim);
@@ -582,16 +558,15 @@ rowvec GRABIM::LocalOptimiser(rowvec x_grid)
         }
         else
         {
-            lb[k] = 5;   lb[k+1] = 1e-6;
+            lb[k] = 5;   lb[k+1] = 0;
             ub[k] = 1e4; ub[k+1] = 10;
             k++;
         }
     }
 
-
     // It seems that NLopt sometimes crashes because of the limits...
-     opt.set_lower_bounds(lb);
-     opt.set_upper_bounds(ub);
+    opt.set_lower_bounds(lb);
+    opt.set_upper_bounds(ub);
 
     std::vector<double> x(dim);
     for (int i = 0; i < dim; i++)x[i] = x_grid.at(i);
@@ -687,9 +662,9 @@ void GRABIM::AutoSetInitialPivot()
     for (unsigned int i = 0; i< topology.size();i++)
     {
         if (!topology.substr(i,1).compare("0")) XINI.push(20/meanw);//Series impedance at midband ~ 5 Ohm
-        if (!topology.substr(i,1).compare("2")) XINI.push(300/meanw);//Parallel impedance at midband ~ 100 Ohm
-        if (!topology.substr(i,1).compare("1")) XINI.push(1/(20*meanw));//Series impedance at midband ~ 5 Ohm
-        if (!topology.substr(i,1).compare("3")) XINI.push(1/(300*meanw));//Parallel impedance at midband ~ 100 Ohm
+        if (!topology.substr(i,1).compare("2")) XINI.push(20/meanw);//Parallel impedance at midband ~ 100 Ohm
+        if (!topology.substr(i,1).compare("1")) XINI.push(1/(50*meanw));//Series impedance at midband ~ 5 Ohm
+        if (!topology.substr(i,1).compare("3")) XINI.push(1/(50*meanw));//Parallel impedance at midband ~ 100 Ohm
         if((!topology.substr(i,1).compare("5"))||(!topology.substr(i,1).compare("6")))XINI.push(real(mean(ZS+ZL))),XINI.push(lambda4);
 
         if (!topology.substr(i,1).compare("4"))//Transmission line
@@ -710,6 +685,8 @@ void GRABIM::AutoSetInitialPivot()
         x_ini.at(i) = XINI.front();
         XINI.pop();
     }
+
+    x_ini = x_ini % (.2*randu(1, x_ini.n_cols)+1);//Randomizes the initial point
 }
 
 
@@ -719,16 +696,196 @@ void GRABIM::setTopoScript(std::string path)
 }
 
 
-//
+//This function checks whether a network has been modified or not, and, if it was, it
+//reshapes the generating matrix and xkq
 void GRABIM::CheckDim(mat & C, mat & xkq, mat & best_pivot, unsigned int dim)
 {
     if (xkq.n_cols != dim)//The current network has changed
     {
-      C.resize(dim, pow(2, dim)+1);
-      C = GeneratingMatrix(dim);
-      xkq.resize(pow(2, dim)+1, dim);
-      xkq.ones();
-      best_pivot.resize(4, dim);
-      best_pivot.ones();
+        C.resize(dim, pow(2, dim)+1);
+        C = GeneratingMatrix(dim);
+        xkq.resize(pow(2, dim)+1, dim);
+        xkq.ones();
+        best_pivot.resize(4, dim);
+        best_pivot.ones();
     }
+}
+
+/*
+// This is a custom objective function defined for maximizing BW once S11 is low enough (-12dB)
+double calculate_max_bw_fobj(rowvec s11)
+{
+  if (s11.min() <)
+
+}*/
+
+/* Indicates search mode:
+ * 0: File input (Default)
+ * 1: Networks proposed at [1], [2]
+ * 2: LC networks up to 4 elements
+ * 3: LC + TL networks up to 6 elements
+ * 4: LC + TL + Stubs up to 6 elements
+ * */
+
+void GRABIM::setSearchMode(int mode)
+{
+    string str;
+    TopoList.clear();
+    TagList.clear();
+    list<string>::iterator it_topo, it_tag;
+    it_topo = TopoList.begin();
+    it_tag = TagList.begin();
+    switch (mode)
+    {
+    case 0:
+    {
+        if (topology.compare("-1"))
+        {
+            TopoList.insert(it_topo, topology);
+            TagList.insert(it_tag, "");
+            return;//Command input
+        }
+        std::ifstream TopologiesFile(TopoScript_path);//Tries to open the file.
+        std::string tag, aux;
+        if(TopologiesFile.is_open())//The data file cannot be opened => error
+        {
+            while (std::getline(TopologiesFile, aux))
+            {
+                if (aux.empty())continue;
+                if (aux.substr(0,1).compare("#")==0)
+                {
+                    tag = aux;
+                    continue;
+                }
+                TopoList.insert(it_topo, aux);
+                TagList.insert(it_tag, tag);
+                it_topo++;
+                it_tag++;
+            }
+            return;
+        }//If either topology == -1 or the input file cannot be opened, it tries the prefined networks
+    }
+    case 1://Preprogrammed networks
+    {
+        TopoList.insert(it_topo, "444"), TagList.insert(it_tag, "Cascaded transmission lines");
+        it_topo++, it_tag++;
+        TopoList.insert(it_topo,"020313"), TagList.insert(it_tag,"020313");
+        it_topo++, it_tag++;
+        TopoList.insert(it_topo,"313020"), TagList.insert(it_tag,"313020");
+        it_topo++, it_tag++;
+        TopoList.insert(it_topo,"03030"), TagList.insert(it_tag,"Lowpass LC 3 sections");
+        it_topo++, it_tag++;
+        TopoList.insert(it_topo,"313202"), TagList.insert(it_tag,"313202");
+        it_topo++, it_tag++;
+        TopoList.insert(it_topo,"202313"), TagList.insert(it_tag,"202313");
+        it_topo++, it_tag++;
+        TopoList.insert(it_topo,"03030"), TagList.insert(it_tag,"03030");
+        it_topo++, it_tag++;
+        TopoList.insert(it_topo,"43434"), TagList.insert(it_tag,"43434");
+        it_topo++, it_tag++;
+        TopoList.insert(it_topo,"01230123"), TagList.insert(it_tag,"01230123");
+        it_topo++, it_tag++;
+        TopoList.insert(it_topo,"23012301"), TagList.insert(it_tag,"23012301");
+        it_topo++, it_tag++;
+        TopoList.insert(it_topo,"12031203"), TagList.insert(it_tag,"12031203");
+        it_topo++, it_tag++;
+        TopoList.insert(it_topo,"21302130"), TagList.insert(it_tag,"21302130");
+        it_topo++, it_tag++;
+        TopoList.insert(it_topo,"03120312"), TagList.insert(it_tag,"03120312");
+        it_topo++, it_tag++;
+        TopoList.insert(it_topo,"30213021"), TagList.insert(it_tag,"30213021");
+        it_topo++, it_tag++;
+        TopoList.insert(it_topo,"30303030"), TagList.insert(it_tag,"30303030");
+        it_topo++, it_tag++;
+        TopoList.insert(it_topo,"03030303"), TagList.insert(it_tag,"Lowpass LC 4 sections");
+        it_topo++, it_tag++;
+        TopoList.insert(it_topo,"12121212"), TagList.insert(it_tag,"12121212");
+        it_topo++, it_tag++;
+        TopoList.insert(it_topo,"21212121"), TagList.insert(it_tag,"21212121");
+        it_topo++, it_tag++;
+        return;
+    }
+    case 2://LC networks up to 4 elements
+    {
+        for (unsigned int i1 = 0; i1 < 4; i1++)
+        {
+            for (unsigned int i2 = 0; i2 < 4; i2++)
+            {
+                for (unsigned int i3 = 0; i3 < 4; i3++)
+                {
+                    for (unsigned int i4 = 0; i4 < 4; i4++)
+                    {
+                        str.clear();
+                        str = to_string(i1) + to_string(i2) + to_string(i3) + to_string(i4);
+                        TopoList.insert(it_topo, str);
+                        TagList.insert(it_tag, str);
+                        it_topo++, it_tag++;
+                    }
+                }
+            }
+        }
+        return;
+    }
+    case 3: //LC + TL networks up to 6 elements
+    {
+        for (unsigned int i1 = 0; i1 < 5; i1++)
+        {
+            for (unsigned int i2 = 0; i2 < 5; i2++)
+            {
+                for (unsigned int i3 = 0; i3 < 5; i3++)
+                {
+                    for (unsigned int i4 = 0; i4 < 5; i4++)
+                    {
+                        for (unsigned int i5 = 0; i5 < 5; i5++)
+                        {
+                            for (unsigned int i6 = 0; i6 < 5; i6++)
+                            {
+                                str.clear();
+                                str = to_string(i1) + to_string(i2) + to_string(i3) + to_string(i4) + to_string(i5)+ to_string(i6);
+                                TopoList.insert(it_topo, str);
+                                TagList.insert(it_tag, str);
+                                it_topo++, it_tag++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return;
+    }
+    case 4: //LC + TL + stubs networks up to 6 elements
+    {
+        for (unsigned int i1 = 0; i1 < 7; i1++)
+        {
+            for (unsigned int i2 = 0; i2 < 7; i2++)
+            {
+                for (unsigned int i3 = 0; i3 < 7; i3++)
+                {
+                    for (unsigned int i4 = 0; i4 < 7; i4++)
+                    {
+                        for (unsigned int i5 = 0; i5 < 7; i5++)
+                        {
+                            for (unsigned int i6 = 0; i6 < 7; i6++)
+                            {
+                                str.clear();
+                                str = to_string(i1) + to_string(i2) + to_string(i3) + to_string(i4) + to_string(i5)+ to_string(i6);
+                                TopoList.insert(it_topo, str);
+                                TagList.insert(it_tag, str);
+                                it_topo++, it_tag++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return;
+    }
+
+    }
+}
+
+
+void GRABIM::SimplifyNetwork(bool simplify_mode)
+{
+    simplify_network = simplify_mode;
 }

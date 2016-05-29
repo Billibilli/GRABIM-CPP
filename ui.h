@@ -33,7 +33,7 @@ private:
     QPushButton * TopoScriptButton;
     QWidget * centralWidget;
     QSvgWidget *imgWidget;
-    QComboBox *Topology;
+    QComboBox *Topology, *SearchModeCombo;
 
     QRadioButton *ArbitraryTopology, *SearchBestTopology;
     QComboBox * LocalOptCombo, *minFUnitsCombo, * maxFUnitsCombo;
