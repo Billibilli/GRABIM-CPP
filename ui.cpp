@@ -174,7 +174,7 @@ ui::ui()
        QucsSchPathLayout->addWidget(new QLabel("Qucs schematic:"));
        QucsSchPathLayout->addWidget(QucsSchematicPathButton);
 
-       QucsSchematicPath = "GRABIM_matching_network.sch";
+       QucsSchematicPath = "GRABIM_result.sch";
 
 
        QHBoxLayout * TopoScriptLayout =  new QHBoxLayout();
@@ -361,7 +361,7 @@ void ui::go_clicked()
             return;
         }
     }
-
+    inout_operations.set_qucs_sch_path(QucsSchematicPath.toStdString());
 
     GRABIM MatchingObject;
     // Impedance and frequency settings
@@ -414,6 +414,7 @@ void ui::go_clicked()
     (FixedZLCheckbox->isChecked()) ? R.load_path = "": R.load_path = LoadFile.toStdString();
 
     R.QucsVersion = QucsCombo->currentText().toStdString();
+
 
 
 
