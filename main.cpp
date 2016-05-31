@@ -70,6 +70,43 @@ int main(int argc, char *argv[])
               {
                    no_simplify = true;
               }
+              if (!strcmp(argv[i], "--help"))
+              {
+                  cout << "This program implements GRABIM, a grid-search based" << endl;
+                  cout << "wideband matching network synthesis algorithm." << endl;
+                  cout << "References:" << endl;
+                  cout << "[1] Broadband direct-coupled and RF matching networks. Thomas R. Cuthbert, 1999" << endl;
+                  cout << "[2] Broadband impedance matching - Fast and simple. Thomas R. Cuthbert. RF design. 1994" << endl << endl;
+                  cout << "Options:" << endl;
+                  cout << "* ./GRABIM-CPP ZS ZL f1 f2" << endl;
+                  cout << "   General call. Searches the best solution among a predefined set of network topologies" << endl;
+                  cout << "* --set-seed xxx" <<endl;
+                  cout << "   Sets a seed for random number generation. This implementation tries to" << endl;
+                  cout << "   get closer to the optimum than the original method, so at the final" << endl;
+                  cout << "   grid cycle, it generates a set of random vectors in the neighboorhood" << endl;
+                  cout << "   of the current pivot." << endl;
+                  cout << "* --set-search-mode  xxx" << endl;
+                  cout << "   The topology search is accomplished using the following code:" << endl;
+                  cout << "   0: Script" << endl;
+                  cout << "   1: Predefined set" << endl;
+                  cout << "   2: Combinations of LC (4 elements)" << endl;
+                  cout << "   3: Combinations of LC and TL (6 elements)" << endl;
+                  cout << "   4: Combinations of LC, TL and open/shorted stubs (6 elements). Not recommended" << endl;
+                  cout << "* --no-simplify" << endl;
+                  cout << "   By default, this program takes advantage from removing high/low impendance components" << endl;
+                  cout << "   to avoid this, please use this option" << endl;
+                  cout << "* --set-topo xxx" << endl;
+                  cout << "   The program tries to find the optimum of an user defined topology. xxx can be" << endl;
+                  cout << "   an arbitrary combination of the following items" << endl;
+                  cout << "   0: Series inductance"<< endl;
+                  cout << "   1: Series capacitance" << endl;
+                  cout << "   2: Parallel inductance"<< endl;
+                  cout << "   3: Parallel capacitance" << endl;
+                  cout << "   4: Transmission line"<< endl;
+                  cout << "   5: Open stub" << endl;
+                  cout << "   6: Shorted stub" << endl;
+                  return 0;
+              }
 
           }
 
