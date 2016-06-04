@@ -670,6 +670,7 @@ void IO::PrintNetwork_StandardOutput(GRABIM_Result Res)
     LogFile << Res.freq.min() << endl;
     LogFile << Res.freq.max() << endl;
     LogFile << Res.topology << endl;
+    LogFile << Res.S11_gridsearch << endl;
     LogFile << "###" << endl;
     LogFile.close();
 }

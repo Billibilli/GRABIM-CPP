@@ -11,6 +11,9 @@ rm -rf log
 ./../GRABIM 75 BFR520-input.s1p 1e9 1.5e9 --set-seed 31039102
 ./../GRABIM 50 TQP7M9101-input.s1p 2e9 2.5e9 --set-seed 31039102
 ./../GRABIM TQP7M9101-output.s1p 50 2e9 2.5e9 --set-seed 31039102
+./../GRABIM 25+j78 65-j100 5e8 9e8 --set-seed 31039102
+./../GRABIM 50 500 2e9 3e9 --set-topo 444 --set-seed 31039102
+
 
 #Compare simulation results with standard
 if cmp log reference
