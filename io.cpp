@@ -664,4 +664,12 @@ void IO::PrintNetwork_StandardOutput(GRABIM_Result Res)
     TrainingFile << "###" << endl;
     TrainingFile.close();
     }
+    std::ofstream LogFile("log", ios_base::app);
+    LogFile << Res.ZS.at(0) << " " << Res.ZS.at(round(2*Nsamples/5)-1) << " " << Res.ZS.at(round(3*Nsamples/5)-1) << " " << Res.ZS.at(round(4*Nsamples/5)-1) << " " << Res.ZS.at(Nsamples-1) << endl;
+    LogFile << Res.ZL.at(0) << " " << Res.ZL.at(round(2*Nsamples/5)-1) << " " << Res.ZL.at(round(3*Nsamples/5)-1) << " " << Res.ZL.at(round(4*Nsamples/5)-1) << " " << Res.ZL.at(Nsamples-1) << endl;
+    LogFile << Res.freq.min() << endl;
+    LogFile << Res.freq.max() << endl;
+    LogFile << Res.topology << endl;
+    LogFile << "###" << endl;
+    LogFile.close();
 }
