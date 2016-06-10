@@ -160,6 +160,12 @@ int main(int argc, char *argv[])
         double fmatching_min = atof(argv[3]);
         double fmatching_max = atof(argv[4]);
 
+        if (fmatching_max <= fmatching_min)
+        {
+            cout << "The lowest frequency must be lower than the highest" << endl;
+            return 0;
+        }
+
         if ((fmatching_min == -1) || (fmatching_max == -1))
         {
             cerr << "Incorrect frequency settings" << endl;

@@ -168,7 +168,6 @@ rowvec GRABIM::GridSearch()
     best.at(0) = fxk;
     mat C = GeneratingMatrix(dim);
     unsigned int niter = 0;
-
     f_xkq = 1e6*f_xkq.ones();
 
     /*
@@ -212,7 +211,6 @@ rowvec GRABIM::GridSearch()
         best_candidate = f_xkq.min();
         uvec v_find = find(f_xkq < best_candidate+1e-6);
         int imin = v_find.at(0);
-
         if (verbose)std::cout << "BEST CANDIDATE "<< i << ": " << xkq.row(imin) << " => " << best_candidate << std::endl;
 
 
@@ -565,9 +563,9 @@ rowvec GRABIM::LocalOptimiser(rowvec x_grid)
     }
 
     // It seems that NLopt sometimes crashes because of the limits...
-    opt.set_lower_bounds(lb);
-    opt.set_upper_bounds(ub);
-
+  /* opt.set_lower_bounds(lb);
+   opt.set_upper_bounds(ub);
+*/
     std::vector<double> x(dim);
     for (int i = 0; i < dim; i++)x[i] = x_grid.at(i);
     double minf;
@@ -606,8 +604,19 @@ rowvec GRABIM::LocalOptimiser(rowvec x_grid)
     }
 
     rowvec x_nlopt = ones(1, dim);
-    for (int i = 0; i < dim; i++)x_nlopt.at(i) = x[i];
+    bool error = false;
+    for (int i = 0; i < dim; i++)
+    {
+        x_nlopt.at(i) = x[i];
+        if(x[i] <= 0)
+        {
+            error = true;
+            cout << "WARNING: NLopt gave an invalid solution" << endl;
+            break;
+        }
+    }
 
+    if (error) x_nlopt = x_grid;
     return x_nlopt;
 
 }
@@ -673,7 +682,6 @@ void GRABIM::AutoSetInitialPivot()
             // works real-to-real impedance transformer. Luckily, GRABIM will find a better result
             double Zi;
             double m = 2.*(mean(real(ZL))-mean(real(ZS)))/topology.length();
-
             Zi = m*i+mean(real(ZS));
             XINI.push(Zi);
             XINI.push(lambda4);
@@ -685,7 +693,6 @@ void GRABIM::AutoSetInitialPivot()
         x_ini.at(i) = XINI.front();
         XINI.pop();
     }
-
     x_ini = x_ini % (.2*randu(1, x_ini.n_cols)+1);//Randomizes the initial point
 }
 

@@ -215,7 +215,7 @@ int IO::loadS1Pdata(std::string filepath, terminal Port)
     if (Port == LOAD)//Set load port properties
     {
         fL = freq;
-        ZL = Z.col(0);;
+        ZL = Z.col(0);
         if (!ZS.empty())ResampleImpedances();
     }
     return 0;
@@ -312,7 +312,6 @@ int IO::ResampleImpedances()
 
         ZS = cx_vec(ZS_inter_R, ZS_inter_I);
         ZL = cx_vec(ZL_inter_R, ZL_inter_I);
-
         return 0;
 
 }
