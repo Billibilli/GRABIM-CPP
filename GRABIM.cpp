@@ -192,6 +192,7 @@ rowvec GRABIM::GridSearch()
     }*/
 
     // Factorial search
+
     for (int i = 0; i<4; i++, niter++)
     {
         if ((best.min() < MatchingThreshold)&&(niter > Grid_MaxIter))//Stop condition
@@ -235,22 +236,27 @@ rowvec GRABIM::GridSearch()
             {
                 //Suggestion for improvement. When GRABIM gets stuck, sometimes it helps to try some
                 //random vectors near the current pivot. The distribution was chosen to be U(-0.5, 0.5)
-                int Ncatchup  = 100;
+                int Ncatchup  = 1000;
+                int n_trials = 10;
                 mat XKQ = ones(Ncatchup, xk.n_cols);
                 vec FXK = ones(Ncatchup);
-                for (int k = 0; k <Ncatchup; k++)
+                for (int trial = 0; trial < n_trials; trial++)
                 {
-                    XKQ.row(k) = best_pivot.row(0) %(randu(1, xk.n_cols)+.5);
-                    FXK.at(k) =CandidateEval(XKQ.row(k));
-                }
-                uvec v_find_catchup = find(FXK < FXK.min()+1e-6);
-                int imin = v_find_catchup.at(0);
-                if (FXK.min() < best.min())
-                {
-                    xk = XKQ.row(imin);
-                    xk = InspectCandidate(xk);
-                    if (verbose)std::cout << "=> " << xk << ": " << FXK.min()<< std::endl;
-                    i=-1;
+                    arma_rng::set_seed_random();  // set the seed to a random value
+                    for (int k = 0; k <Ncatchup; k++)
+                    {
+                        XKQ.row(k) = best_pivot.row(0) %(randu(1, xk.n_cols)+.5);
+                        FXK.at(k) =CandidateEval(XKQ.row(k));
+                    }
+                    uvec v_find_catchup = find(FXK < FXK.min()+1e-6);
+                    int imin = v_find_catchup.at(0);
+                    if (FXK.min() < best.min())
+                    {
+                        xk = XKQ.row(imin);
+                        xk = InspectCandidate(xk);
+                        if (verbose)std::cout << "=> " << xk << ": " << FXK.min()<< std::endl;
+                        i=-1;
+                    }
                 }
             }
 
@@ -563,7 +569,7 @@ rowvec GRABIM::LocalOptimiser(rowvec x_grid)
     }
 
     // It seems that NLopt sometimes crashes because of the limits...
-  /* opt.set_lower_bounds(lb);
+    /* opt.set_lower_bounds(lb);
    opt.set_upper_bounds(ub);
 */
     std::vector<double> x(dim);

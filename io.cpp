@@ -310,8 +310,10 @@ int IO::ResampleImpedances()
         interp1(fL, ZL_r, freq, ZL_inter_R);
         interp1(fL, ZL_i, freq, ZL_inter_I);
 
+
         ZS = cx_vec(ZS_inter_R, ZS_inter_I);
         ZL = cx_vec(ZL_inter_R, ZL_inter_I);
+
         return 0;
 
 }
