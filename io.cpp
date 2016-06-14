@@ -650,6 +650,7 @@ void IO::PrintNetwork_StandardOutput(GRABIM_Result Res)
         }
     printf("\n+----LOAD----+\n\n");
 
+    cout << "min(S11) = " << Res.nlopt_val << "dB" << endl;
 
     //This is a log of successful results, every time the algorithm reaches a good matching
     //condition, the both the problem and the best topology are save in order to gather

@@ -170,26 +170,26 @@ rowvec GRABIM::GridSearch()
     unsigned int niter = 0;
     f_xkq = 1e6*f_xkq.ones();
 
-    /*
+
     //Initial guess. Sometimes, the initial point may be far away from the optimum, so it
     // seems to be reasonable to pick a handful of random vectors nearby the inital point and
     // choose the best one.
 
-    int N_initial_guess  = 100;
+    int N_initial_guess  = 1000;
     mat XKQ = ones(N_initial_guess, xk.n_cols);
     vec FXK = ones(N_initial_guess);
     for (int k = 0; k <N_initial_guess; k++)
     {
-        XKQ.row(k) = xk %(randu(1, xk.n_cols)*3);
+        XKQ.row(k) = xk %(randu(1, xk.n_cols)*5);
         FXK.at(k) =CandidateEval(XKQ.row(k));
     }
-    uvec v_find_guess = find(FXK < FXK.min()+1e-6);
+    uvec v_find_guess = find(FXK < FXK.min()+1e-2);
     int imin = v_find_guess.at(0);
     if (FXK.min() < fxk)
     {
         xk = XKQ.row(imin);
         fxk = CandidateEval(xk);
-    }*/
+    }
 
     // Factorial search
 
@@ -237,13 +237,13 @@ rowvec GRABIM::GridSearch()
                 //Suggestion for improvement. When GRABIM gets stuck, sometimes it helps to try some
                 //random vectors near the current pivot. The distribution was chosen to be U(-0.5, 0.5)
                 int Ncatchup  = 1000;
-                int n_trials = 10;
+                int n_trials = 1000;
                 mat XKQ = ones(Ncatchup, xk.n_cols);
                 vec FXK = ones(Ncatchup);
                 for (int trial = 0; trial < n_trials; trial++)
                 {
                     arma_rng::set_seed_random();  // set the seed to a random value
-                    for (int k = 0; k <Ncatchup; k++)
+                    for (int k = 0; k < Ncatchup; k++)
                     {
                         XKQ.row(k) = best_pivot.row(0) %(randu(1, xk.n_cols)+.5);
                         FXK.at(k) =CandidateEval(XKQ.row(k));
@@ -256,6 +256,7 @@ rowvec GRABIM::GridSearch()
                         xk = InspectCandidate(xk);
                         if (verbose)std::cout << "=> " << xk << ": " << FXK.min()<< std::endl;
                         i=-1;
+                        break;
                     }
                 }
             }
@@ -617,12 +618,14 @@ rowvec GRABIM::LocalOptimiser(rowvec x_grid)
         if(x[i] <= 0)
         {
             error = true;
-            cout << "WARNING: NLopt gave an invalid solution" << endl;
+            cout << "********************************************************" << endl;
+            cout << "********* WARNING: NLopt gave an invalid solution*******" << endl;
+            cout << "********************************************************" << endl << endl << endl;
+            x_nlopt = x_grid;
             break;
         }
     }
 
-    if (error) x_nlopt = x_grid;
     return x_nlopt;
 
 }
@@ -673,13 +676,14 @@ void GRABIM::AutoSetInitialPivot()
     double meanf = .5*(freq.min()+freq.max());
     double meanw = 2*datum::pi*meanf;
     double lambda4 = c0/(4.*meanf);
+    double meanZ = 0.75*(mean(abs(ZL))+mean(abs(ZS)));
     queue <double> XINI;
     for (unsigned int i = 0; i< topology.size();i++)
     {
-        if (!topology.substr(i,1).compare("0")) XINI.push(20/meanw);//Series impedance at midband ~ 5 Ohm
-        if (!topology.substr(i,1).compare("2")) XINI.push(20/meanw);//Parallel impedance at midband ~ 100 Ohm
-        if (!topology.substr(i,1).compare("1")) XINI.push(1/(50*meanw));//Series impedance at midband ~ 5 Ohm
-        if (!topology.substr(i,1).compare("3")) XINI.push(1/(50*meanw));//Parallel impedance at midband ~ 100 Ohm
+        if (!topology.substr(i,1).compare("0")) XINI.push(meanZ/meanw);
+        if (!topology.substr(i,1).compare("2")) XINI.push(meanZ/meanw);
+        if (!topology.substr(i,1).compare("1")) XINI.push(1/(meanZ*meanw));
+        if (!topology.substr(i,1).compare("3")) XINI.push(1/(meanZ*meanw));
         if((!topology.substr(i,1).compare("5"))||(!topology.substr(i,1).compare("6")))XINI.push(real(mean(ZS+ZL))),XINI.push(lambda4);
 
         if (!topology.substr(i,1).compare("4"))//Transmission line
