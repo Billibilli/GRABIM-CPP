@@ -88,7 +88,7 @@ private:
 
     std::string TopoScript_path;
 
-    int GridSearch_DifferentTopologies(rowvec &, std::string &);
+    int GridSearch_DifferentTopologies(vector<rowvec> &, vector<std::string> &);
     void AutoSetInitialPivot();
     void removeElement(rowvec & xk, unsigned int pos, unsigned int postopo);
     void CheckDim(mat &, mat &, mat &, unsigned int);

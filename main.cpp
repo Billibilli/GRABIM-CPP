@@ -110,7 +110,6 @@ int main(int argc, char *argv[])
 
           }
 
-
         string SourceFile = argv[1];
         string LoadFile = argv[2];
 
@@ -119,10 +118,15 @@ int main(int argc, char *argv[])
 
         //Impedance data paths were already specified, let's proceed to bring the S-par data into memory
         IO inout_operations;
-
+        int ret;
         if (!ZSisConstant)//Read source impedance from file
         {
-            inout_operations.loadS1Pdata(SourceFile, SOURCE);//s1p
+            ret = inout_operations.loadS1Pdata(SourceFile, SOURCE);//s1p
+            if (ret == -1)
+            {
+                cout << "ERROR: File not found" << endl;
+                return -1;
+            }
         }
         else//Set constant source impedance
         {
@@ -139,7 +143,12 @@ int main(int argc, char *argv[])
 
         if (!ZLisConstant)
         {
-           inout_operations.loadS1Pdata(LoadFile, LOAD);//s1p
+           ret = inout_operations.loadS1Pdata(LoadFile, LOAD);//s1p
+           if (ret == -1)
+           {
+               cout << "ERROR: File not found" << endl;
+               return -1;
+           }
         }
         else
         {
@@ -207,7 +216,6 @@ int main(int argc, char *argv[])
 
         inout_operations.setLocalOptimiser(nlopt::LN_NELDERMEAD);
         inout_operations.set_qucs_sch_path(QucsSchPath);
-
 
         GRABIM_Result R = MatchingObject.RunGRABIM();//Runs GRABIM. Well, this is not exactly the algorithm
         // detailed at [1] but from my point of view is functional and easier to code...

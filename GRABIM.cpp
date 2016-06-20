@@ -93,19 +93,33 @@ GRABIM_Result GRABIM::RunGRABIM()
 {
     GRABIM_Result Res;
 
-    rowvec Vopt;
-    string candidate;
+    vector<rowvec> Vopt;
+    vector<string> candidates;
 
-    GridSearch_DifferentTopologies(Vopt, candidate);
+    GridSearch_DifferentTopologies(Vopt, candidates);
+    rowvec aux_grid(Vopt[0]), aux_local(Vopt[0]);
+    double  aux_flocal, best=1e8;
+    unsigned int best_index=0;
+cout << "Local candidates" << endl;
+    for (unsigned int i = 0; i < candidates.size(); i++)
+    {
+        topology = candidates[i];
+        aux_grid = Vopt[i];
+        aux_local = LocalOptimiser(aux_grid);
+        aux_flocal = CandidateEval(aux_local);
+        cout << aux_flocal << endl;
+        if (aux_flocal < best)
+        {
+            best_index = i;
+            best = aux_flocal;
+            Res.x_grid_search = Vopt[i];
+            Res.x_nlopt = aux_local;
+            Res.grid_val = CandidateEval(Vopt[i]);
+            Res.nlopt_val = aux_flocal;
+        }
+    }
+    topology = candidates[best_index];
 
-    topology = candidate;
-    Res.x_grid_search = Vopt;
-
-
-
-    Res.grid_val = CandidateEval(Res.x_grid_search);
-    Res.x_nlopt = LocalOptimiser(Res.x_grid_search);
-    Res.nlopt_val = CandidateEval(Res.x_nlopt);
     Res.ZS = ZS;
     Res.ZL = ZL;
     Res.freq = freq;
@@ -269,11 +283,11 @@ rowvec GRABIM::GridSearch()
 
 
 //This function searches the optimum over a predefined circuit topologies
-int GRABIM::GridSearch_DifferentTopologies(rowvec & Vopt, std::string & candidate)
+int GRABIM::GridSearch_DifferentTopologies(vector<rowvec> & Vopt, vector<std::string> & candidates)
 {
     double gridtest, opttopo = 1e12;
     rowvec Vaux;
-    string tag;
+    string tag, best;
 
     unsigned int n_topo = TopoList.size();
     for (unsigned int i = 0; i < n_topo; i++)
@@ -287,12 +301,26 @@ int GRABIM::GridSearch_DifferentTopologies(rowvec & Vopt, std::string & candidat
         gridtest = CandidateEval(Vaux);
         cout << 100.*(i+1)/n_topo<< "% completed. " << tag << ": S11_min = " <<  gridtest << " dB" << endl;
 
-        if (gridtest < opttopo - 0.5)//It worths to change the topology if the new one improves the result significantly
+        if (gridtest < -8)
         {
-            candidate = topology;
+            candidates.push_back(topology);
             opttopo = gridtest;
-            Vopt = Vaux;
+            Vopt.push_back(Vaux);
         }
+        else
+        {
+            if(gridtest < opttopo)
+            {
+                best = topology;
+                candidates.push_back(topology);
+                opttopo = gridtest;
+                Vopt.push_back(Vaux);
+            }
+        }
+    }
+    if (candidates.empty())
+    {
+        candidates.push_back(best);
     }
     return 0;
 }
@@ -530,7 +558,7 @@ double myfunc(const std::vector<double> &x, std::vector<double> &grad, void *n)
     for (unsigned int i = 0; i < x.size(); i++) x_.at(i) = x[i];
 
     double eval = M.CandidateEval(x_);
-    std::cout<< eval << " <= " << x_<< std::endl;
+    //std::cout<< eval << " <= " << x_<< std::endl;
     return eval;
 }
 
